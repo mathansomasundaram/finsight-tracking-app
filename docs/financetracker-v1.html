@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finsight — V1 UX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f11;
+    --bg2: #141519;
+    --bg3: #1c1d22;
+    --bg4: #23242a;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0ede8;
+    --muted: #8a8890;
+    --muted2: #5a5862;
+    --accent: #c8f060;
+    --accent2: #a8d840;
+    --red: #ff6b6b;
+    --amber: #f5a623;
+    --blue: #5b9cf6;
+    --teal: #4ecdc4;
+    --purple: #b794f4;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --font-display: 'DM Serif Display', serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --sidebar-w: 220px;
+    --nav-h: 56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+  }
+
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-mark {
+    font-family: var(--font-display);
+    font-size: 22px;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+  .logo-mark span { color: var(--accent); }
+  .logo-sub {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .nav-section-label {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted2);
+    padding: 8px 10px 4px;
+    margin-top: 8px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 13.5px;
+    font-weight: 400;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    user-select: none;
+  }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active {
+    background: rgba(200,240,96,0.1);
+    color: var(--accent);
+    border-color: rgba(200,240,96,0.15);
+    font-weight: 500;
+  }
+  .nav-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+  .nav-item.active .nav-icon { opacity: 1; }
+
+  .sidebar-footer {
+    padding: 12px 10px;
+    border-top: 1px solid var(--border);
+  }
+  .user-pill {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .user-pill:hover { background: var(--bg3); }
+  .user-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--teal) 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: #000;
+    flex-shrink: 0;
+  }
+  .user-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .user-email { font-size: 10.5px; color: var(--muted); }
+
+  /* ── Main ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    height: var(--nav-h);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 28px;
+    gap: 16px;
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+  .topbar-title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    color: var(--text);
+    flex: 1;
+  }
+  .topbar-badge {
+    font-size: 10px;
+    background: rgba(200,240,96,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(200,240,96,0.2);
+    border-radius: 99px;
+    padding: 2px 10px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .topbar-action {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: background 0.15s;
+  }
+  .topbar-action:hover { background: var(--accent2); }
+  .topbar-action-ghost {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg3);
+    color: var(--text);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: all 0.15s;
+  }
+  .topbar-action-ghost:hover { border-color: var(--border2); background: var(--bg4); }
+
+  /* ── Content area ── */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--bg4) transparent;
+  }
+  .content::-webkit-scrollbar { width: 5px; }
+  .content::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 99px; }
+
+  /* ── Pages ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .card-sm {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+
+  /* ── Grid helpers ── */
+  .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
+  .grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  .grid-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; }
+
+  /* ── KPI Cards ── */
+  .kpi-label {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .kpi-value {
+    font-family: var(--font-display);
+    font-size: 28px;
+    color: var(--text);
+    line-height: 1.1;
+    margin-bottom: 4px;
+  }
+  .kpi-value.green { color: var(--accent); }
+  .kpi-value.red { color: var(--red); }
+  .kpi-delta {
+    font-size: 11.5px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .kpi-delta.up { color: #6dcc6d; }
+  .kpi-delta.down { color: var(--red); }
+  .kpi-accent-bar {
+    height: 3px;
+    background: var(--accent);
+    border-radius: 99px;
+    margin-bottom: 14px;
+    width: 32px;
+  }
+  .kpi-accent-bar.red { background: var(--red); }
+  .kpi-accent-bar.blue { background: var(--blue); }
+  .kpi-accent-bar.amber { background: var(--amber); }
+
+  /* ── Section headers ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .section-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.02em;
+  }
+  .section-action {
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .section-action:hover { color: var(--accent); }
+
+  /* ── Chart area (SVG mock) ── */
+  .chart-area {
+    width: 100%;
+    height: 160px;
+    position: relative;
+  }
+  .chart-area svg { width: 100%; height: 100%; }
+
+  /* ── Net worth chart ── */
+  .nw-chart { height: 200px; }
+
+  /* ── Period tabs ── */
+  .period-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--bg3);
+    border-radius: var(--radius-sm);
+    padding: 3px;
+    width: fit-content;
+  }
+  .period-tab {
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .period-tab.active {
+    background: var(--bg4);
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* ── Transaction list ── */
+  .txn-row {
+    display: grid;
+    grid-template-columns: 36px 1fr auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    transition: background 0.12s;
+    cursor: pointer;
+  }
+  .txn-row:hover { background: var(--bg3); }
+  .txn-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .txn-title { font-size: 13.5px; font-weight: 500; color: var(--text); }
+  .txn-meta { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  .txn-amount { font-family: var(--font-mono); font-size: 14px; font-weight: 500; text-align: right; }
+  .txn-amount.neg { color: var(--red); }
+  .txn-amount.pos { color: var(--accent); }
+  .txn-cat-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    background: var(--bg4);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    text-align: right;
+    width: fit-content;
+    margin-left: auto;
+  }
+  .txn-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 2px 14px;
+  }
+
+  /* ── Asset row ── */
+  .asset-row {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .asset-row:last-child { border-bottom: none; }
+  .asset-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .asset-name { font-size: 13.5px; font-weight: 500; }
+  .asset-sub { font-size: 11.5px; color: var(--muted); }
+  .asset-val { font-family: var(--font-mono); font-size: 14px; font-weight: 500; text-align: right; }
+  .asset-pct {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+    margin-top: 2px;
+  }
+
+  /* ── Progress bar ── */
+  .prog-bar {
+    height: 6px;
+    background: var(--bg4);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .prog-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: var(--accent);
+    transition: width 0.5s;
+  }
+  .prog-fill.red { background: var(--red); }
+  .prog-fill.blue { background: var(--blue); }
+  .prog-fill.amber { background: var(--amber); }
+  .prog-fill.teal { background: var(--teal); }
+  .prog-fill.purple { background: var(--purple); }
+
+  /* ── Donut chart ── */
+  .donut-wrap {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .donut-legend { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12.5px;
+  }
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 7px;
+    flex-shrink: 0;
+  }
+  .legend-label { display: flex; align-items: center; color: var(--muted); }
+  .legend-val { font-family: var(--font-mono); font-size: 12px; color: var(--text); font-weight: 500; }
+
+  /* ── Form elements ── */
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.03em;
+  }
+  .form-input {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-select {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    padding: 9px 12px;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238a8890' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 10px 20px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: background 0.15s;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 9px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: all 0.15s;
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border2); background: var(--bg3); }
+
+  /* ── Filter bar ── */
+  .filter-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .filter-chip {
+    padding: 5px 12px;
+    border-radius: 99px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: var(--bg3);
+    transition: all 0.15s;
+  }
+  .filter-chip.active {
+    border-color: rgba(200,240,96,0.3);
+    color: var(--accent);
+    background: rgba(200,240,96,0.08);
+  }
+  .filter-chip:hover { border-color: var(--border2); color: var(--text); }
+  .filter-search {
+    flex: 1;
+    max-width: 260px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 99px;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    padding: 6px 14px;
+    outline: none;
+  }
+  .filter-search:focus { border-color: var(--accent); }
+
+  /* ── Goal card ── */
+  .goal-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+  }
+  .goal-name { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+  .goal-date { font-size: 11.5px; color: var(--muted); margin-bottom: 12px; }
+  .goal-amounts {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 8px;
+  }
+  .goal-current { font-family: var(--font-mono); font-size: 18px; font-weight: 500; color: var(--accent); }
+  .goal-target { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+  .goal-pct { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  /* ── Modal overlay ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    padding: 24px;
+    width: 460px;
+    max-width: 95vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .modal-title { font-family: var(--font-display); font-size: 20px; }
+  .modal-close {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--bg3);
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .modal-close:hover { background: var(--bg4); color: var(--text); }
+  .modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+
+  /* ── Category pills ── */
+  .cat-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+  .cat-pill {
+    padding: 5px 12px;
+    border-radius: 99px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: var(--bg3);
+    transition: all 0.15s;
+  }
+  .cat-pill.active { border-color: rgba(200,240,96,0.3); color: var(--accent); background: rgba(200,240,96,0.08); }
+
+  /* ── Account selector ── */
+  .account-cards { display: flex; gap: 10px; flex-wrap: wrap; }
+  .account-card {
+    flex: 1; min-width: 100px;
+    background: var(--bg3);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .account-card.active { border-color: rgba(200,240,96,0.4); background: rgba(200,240,96,0.06); }
+  .account-card-name { font-size: 12.5px; font-weight: 500; }
+  .account-card-bal { font-size: 11px; color: var(--muted); font-family: var(--font-mono); margin-top: 2px; }
+
+  /* ── CSV zone ── */
+  .csv-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .csv-zone:hover { border-color: var(--accent); background: rgba(200,240,96,0.04); }
+  .csv-icon { font-size: 32px; margin-bottom: 10px; }
+  .csv-text { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .csv-sub { font-size: 12px; color: var(--muted); }
+
+  /* ── Liability card ── */
+  .liab-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .liab-row:last-child { border-bottom: none; }
+  .liab-name { font-size: 14px; font-weight: 500; }
+  .liab-sub { font-size: 12px; color: var(--muted); }
+  .liab-outstanding { font-family: var(--font-mono); font-size: 14px; color: var(--red); font-weight: 500; }
+  .liab-total { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+
+  /* ── Profile ── */
+  .profile-avatar-lg {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--teal));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 700; color: #000;
+    margin-bottom: 12px;
+  }
+
+  /* ── Spacing helpers ── */
+  .mt4  { margin-top: 4px; }
+  .mt8  { margin-top: 8px; }
+  .mt12 { margin-top: 12px; }
+  .mt16 { margin-top: 16px; }
+  .mt20 { margin-top: 20px; }
+  .mt24 { margin-top: 24px; }
+  .mb8  { margin-bottom: 8px; }
+  .mb12 { margin-bottom: 12px; }
+  .mb16 { margin-bottom: 16px; }
+  .gap8 { display:flex; gap:8px; }
+  .gap12 { display:flex; gap:12px; }
+
+  /* ── Scrollbar for content ── */
+  .scroll-area { overflow-y: auto; max-height: 320px; }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty-icon { font-size: 36px; margin-bottom: 10px; opacity: 0.5; }
+  .empty-text { font-size: 14px; }
+
+  /* ── Tabs inside page ── */
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .tab-item {
+    padding: 10px 18px;
+    font-size: 13.5px;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    margin-bottom: -1px;
+  }
+  .tab-item.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+
+  /* ── Net worth number big ── */
+  .nw-big {
+    font-family: var(--font-display);
+    font-size: 42px;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .nw-label { font-size: 12px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .nw-delta {
+    font-size: 13px;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ── sparklines ── */
+  .sparkline { display: block; }
+
+  /* ── inline type badge ── */
+  .type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-weight: 500;
+  }
+  .type-badge.income { background: rgba(109,204,109,0.12); color: #6dcc6d; }
+  .type-badge.expense { background: rgba(255,107,107,0.12); color: var(--red); }
+
+  /* ── Table style for transactions ── */
+  .txn-table-header {
+    display: grid;
+    grid-template-columns: 36px 1fr 120px 100px 90px 32px;
+    gap: 12px;
+    padding: 8px 14px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted2);
+    border-bottom: 1px solid var(--border);
+  }
+  .txn-table-row {
+    display: grid;
+    grid-template-columns: 36px 1fr 120px 100px 90px 32px;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .txn-table-row:hover { background: var(--bg3); }
+  .txn-table-row:last-child { border-bottom: none; }
+
+  .row-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .txn-table-row:hover .row-actions { opacity: 1; }
+  .row-btn {
+    width: 22px; height: 22px;
+    border-radius: 4px;
+    border: none;
+    background: var(--bg4);
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .row-btn:hover { color: var(--text); }
+
+  /* net worth chart line animation */
+  @keyframes drawLine {
+    from { stroke-dashoffset: 400; }
+    to   { stroke-dashoffset: 0; }
+  }
+  .chart-line {
+    stroke-dasharray: 400;
+    animation: drawLine 1.2s ease forwards;
+  }
+
+  /* ── notification dot ── */
+  .notif-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    position: absolute;
+    top: 8px; right: 8px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">Fin<span>sight</span></div>
+    <div class="logo-sub">Personal Finance</div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <div class="nav-item active" onclick="goTo('dashboard', this)">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Dashboard
+    </div>
+
+    <div class="nav-section-label">Money</div>
+    <div class="nav-item" onclick="goTo('transactions', this)">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+      Transactions
+    </div>
+    <div class="nav-item" onclick="goTo('assets', this)">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M2 20h20M6 20V10m4 10V4m4 10v6m4-10v10"/></svg>
+      Assets
+    </div>
+    <div class="nav-item" onclick="goTo('liabilities', this)">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+      Liabilities
+    </div>
+
+    <div class="nav-section-label">Planning</div>
+    <div class="nav-item" onclick="goTo('goals', this)">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>
+      Goals
+    </div>
+
+    <div class="nav-section-label">Account</div>
+    <div class="nav-item" onclick="goTo('profile', this)">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      Profile
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-pill">
+      <div class="user-avatar">RK</div>
+      <div>
+        <div class="user-name">Rahul Kumar</div>
+        <div class="user-email">rahul@gmail.com</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MAIN ══════════ -->
+<div class="main">
+
+  <!-- ════ DASHBOARD ════ -->
+  <div id="page-dashboard" class="page active">
+    <div class="topbar">
+      <div class="topbar-title">Dashboard</div>
+      <span class="topbar-badge">March 2025</span>
+      <button class="topbar-action-ghost" onclick="openModal('modal-import')">↑ Import CSV</button>
+    </div>
+    <div class="content">
+
+      <!-- Net worth hero -->
+      <div class="card mb16" style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;">
+        <div>
+          <div class="nw-label">Total Net Worth</div>
+          <div class="nw-big">₹24,18,500</div>
+          <div class="nw-delta" style="color:#6dcc6d;">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 3v8M3.5 6.5L7 3l3.5 3.5" stroke="#6dcc6d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            +₹1,24,000 this month
+          </div>
+          <div class="period-tabs mt16">
+            <div class="period-tab active" onclick="setPeriod(this)">3M</div>
+            <div class="period-tab" onclick="setPeriod(this)">6M</div>
+            <div class="period-tab" onclick="setPeriod(this)">1Y</div>
+          </div>
+        </div>
+        <div>
+          <!-- Net worth trend chart -->
+          <svg viewBox="0 0 320 120" style="width:100%;height:120px;">
+            <defs>
+              <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#c8f060" stop-opacity="0.25"/>
+                <stop offset="100%" stop-color="#c8f060" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <!-- grid lines -->
+            <line x1="0" y1="20" x2="320" y2="20" stroke="#1c1d22" stroke-width="1"/>
+            <line x1="0" y1="55" x2="320" y2="55" stroke="#1c1d22" stroke-width="1"/>
+            <line x1="0" y1="90" x2="320" y2="90" stroke="#1c1d22" stroke-width="1"/>
+            <!-- area fill -->
+            <path d="M0,90 C40,85 70,72 110,65 C150,58 180,50 220,42 C260,34 290,28 320,20 L320,110 L0,110 Z" fill="url(#areaGrad)"/>
+            <!-- line -->
+            <path class="chart-line" d="M0,90 C40,85 70,72 110,65 C150,58 180,50 220,42 C260,34 290,28 320,20" fill="none" stroke="#c8f060" stroke-width="2" stroke-linecap="round"/>
+            <!-- dots -->
+            <circle cx="0"   cy="90" r="3" fill="#c8f060"/>
+            <circle cx="110" cy="65" r="3" fill="#c8f060"/>
+            <circle cx="220" cy="42" r="3" fill="#c8f060"/>
+            <circle cx="320" cy="20" r="4" fill="#c8f060" stroke="#0e0f11" stroke-width="2"/>
+            <!-- x labels -->
+            <text x="0"   y="115" fill="#5a5862" font-size="9" font-family="DM Sans">Jan</text>
+            <text x="105" y="115" fill="#5a5862" font-size="9" font-family="DM Sans">Feb</text>
+            <text x="215" y="115" fill="#5a5862" font-size="9" font-family="DM Sans">Mar</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- KPI row -->
+      <div class="grid-4 mb16">
+        <div class="card-sm">
+          <div class="kpi-accent-bar"></div>
+          <div class="kpi-label">Total Assets</div>
+          <div class="kpi-value green">₹28.4L</div>
+          <div class="kpi-delta up">↑ 5.2% from last month</div>
+        </div>
+        <div class="card-sm">
+          <div class="kpi-accent-bar red"></div>
+          <div class="kpi-label">Total Liabilities</div>
+          <div class="kpi-value red">₹4.2L</div>
+          <div class="kpi-delta down">↓ ₹18,000 paid off</div>
+        </div>
+        <div class="card-sm">
+          <div class="kpi-accent-bar blue"></div>
+          <div class="kpi-label">Monthly Spend</div>
+          <div class="kpi-value" style="font-size:22px;">₹38,400</div>
+          <div class="kpi-delta down">↑ ₹4,200 vs Feb</div>
+        </div>
+        <div class="card-sm">
+          <div class="kpi-accent-bar amber"></div>
+          <div class="kpi-label">Monthly Income</div>
+          <div class="kpi-value" style="font-size:22px;">₹1,20,000</div>
+          <div class="kpi-delta" style="color:var(--muted);">Fixed salary</div>
+        </div>
+      </div>
+
+      <!-- Assets vs Liabilities + Expense breakdown -->
+      <div class="grid-2 mb16">
+
+        <!-- Assets vs Liabilities donut -->
+        <div class="card">
+          <div class="section-header">
+            <div class="section-title">Assets vs Liabilities</div>
+          </div>
+          <div class="donut-wrap">
+            <svg width="110" height="110" viewBox="0 0 110 110">
+              <!-- Donut slices -->
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#23242a" stroke-width="16"/>
+              <!-- Assets: 87% ≈ 219deg, circumference 251 -->
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#c8f060" stroke-width="16" stroke-dasharray="218 33" stroke-dashoffset="63" stroke-linecap="butt"/>
+              <!-- Liabilities -->
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#ff6b6b" stroke-width="16" stroke-dasharray="33 218" stroke-dashoffset="-155" stroke-linecap="butt"/>
+              <text x="55" y="50" fill="#f0ede8" font-size="13" font-family="DM Serif Display" text-anchor="middle" dominant-baseline="middle">87%</text>
+              <text x="55" y="64" fill="#8a8890" font-size="9" font-family="DM Sans" text-anchor="middle">assets</text>
+            </svg>
+            <div class="donut-legend">
+              <div class="legend-row">
+                <div class="legend-label"><div class="legend-dot" style="background:var(--accent)"></div>Assets</div>
+                <div class="legend-val">₹28.4L</div>
+              </div>
+              <div class="legend-row">
+                <div class="legend-label"><div class="legend-dot" style="background:var(--red)"></div>Liabilities</div>
+                <div class="legend-val">₹4.2L</div>
+              </div>
+              <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+                <div class="legend-row">
+                  <div class="legend-label" style="color:var(--text);font-weight:500;">Net Worth</div>
+                  <div class="legend-val" style="color:var(--accent);">₹24.2L</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expense by category -->
+        <div class="card">
+          <div class="section-header">
+            <div class="section-title">Expenses by Category</div>
+            <div class="section-action" onclick="goTo('transactions', document.querySelector('[onclick*=transactions]'))">View all →</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;">
+                <span style="color:var(--muted)">🛒 Grocery</span>
+                <span style="font-family:var(--font-mono);font-size:12px;">₹8,200</span>
+              </div>
+              <div class="prog-bar"><div class="prog-fill" style="width:60%"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;">
+                <span style="color:var(--muted)">✈️ Trip</span>
+                <span style="font-family:var(--font-mono);font-size:12px;">₹12,000</span>
+              </div>
+              <div class="prog-bar"><div class="prog-fill amber" style="width:88%"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;">
+                <span style="color:var(--muted)">🏥 Medical</span>
+                <span style="font-family:var(--font-mono);font-size:12px;">₹3,400</span>
+              </div>
+              <div class="prog-bar"><div class="prog-fill blue" style="width:25%"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;">
+                <span style="color:var(--muted)">🎉 Party</span>
+                <span style="font-family:var(--font-mono);font-size:12px;">₹6,800</span>
+              </div>
+              <div class="prog-bar"><div class="prog-fill purple" style="width:50%"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;">
+                <span style="color:var(--muted)">🌅 Weekend</span>
+                <span style="font-family:var(--font-mono);font-size:12px;">₹4,200</span>
+              </div>
+              <div class="prog-bar"><div class="prog-fill teal" style="width:31%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent transactions -->
+      <div class="card">
+        <div class="section-header">
+          <div class="section-title">Recent Transactions</div>
+          <div class="section-action" onclick="goTo('transactions', document.querySelector('[onclick*=transactions]'))">View all →</div>
+        </div>
+        <div>
+          <div class="txn-row">
+            <div class="txn-icon" style="background:rgba(200,240,96,0.1)">🛒</div>
+            <div><div class="txn-title">Big Basket</div><div class="txn-meta">20 Mar · HDFC Account</div></div>
+            <div class="txn-cat-tag">Grocery</div>
+            <div class="txn-amount neg">−₹2,340</div>
+          </div>
+          <div class="txn-divider"></div>
+          <div class="txn-row">
+            <div class="txn-icon" style="background:rgba(91,156,246,0.1)">💼</div>
+            <div><div class="txn-title">Salary Credit</div><div class="txn-meta">18 Mar · HDFC Account</div></div>
+            <div class="txn-cat-tag">Income</div>
+            <div class="txn-amount pos">+₹1,20,000</div>
+          </div>
+          <div class="txn-divider"></div>
+          <div class="txn-row">
+            <div class="txn-icon" style="background:rgba(245,166,35,0.1)">✈️</div>
+            <div><div class="txn-title">IndiGo Flight — Goa</div><div class="txn-meta">15 Mar · Axis Credit Card</div></div>
+            <div class="txn-cat-tag">Trip</div>
+            <div class="txn-amount neg">−₹8,200</div>
+          </div>
+          <div class="txn-divider"></div>
+          <div class="txn-row">
+            <div class="txn-icon" style="background:rgba(183,148,244,0.1)">🎉</div>
+            <div><div class="txn-title">Birthday Dinner</div><div class="txn-meta">12 Mar · Cash</div></div>
+            <div class="txn-cat-tag">Party</div>
+            <div class="txn-amount neg">−₹3,200</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════ TRANSACTIONS ════ -->
+  <div id="page-transactions" class="page">
+    <div class="topbar">
+      <div class="topbar-title">Transactions</div>
+      <button class="topbar-action-ghost" onclick="openModal('modal-import')">↑ Import CSV</button>
+      <button class="topbar-action-ghost">↓ Export</button>
+      <button class="topbar-action" onclick="openModal('modal-add-txn')">+ Add Transaction</button>
+    </div>
+    <div class="content">
+
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <input class="filter-search" placeholder="Search transactions…" type="text"/>
+        <div class="filter-chip active">All</div>
+        <div class="filter-chip">Income</div>
+        <div class="filter-chip">Expense</div>
+        <div style="flex:1"></div>
+        <div class="period-tabs">
+          <div class="period-tab active" onclick="setPeriod(this)">Jan</div>
+          <div class="period-tab" onclick="setPeriod(this)">Feb</div>
+          <div class="period-tab" onclick="setPeriod(this)">Mar</div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="txn-table-header">
+          <div></div>
+          <div>Description</div>
+          <div>Category</div>
+          <div>Account</div>
+          <div style="text-align:right">Amount</div>
+          <div></div>
+        </div>
+
+        <div class="txn-table-row">
+          <div class="txn-icon" style="background:rgba(200,240,96,0.1);width:30px;height:30px;font-size:13px">🛒</div>
+          <div><div class="txn-title">Big Basket</div><div class="txn-meta">20 Mar 2025</div></div>
+          <div><span class="cat-pill active" style="font-size:11px;padding:3px 8px">Grocery</span></div>
+          <div style="color:var(--muted);font-size:12.5px">HDFC Savings</div>
+          <div class="txn-amount neg" style="font-size:13px">−₹2,340</div>
+          <div class="row-actions"><button class="row-btn">✏</button><button class="row-btn" style="color:var(--red)">✕</button></div>
+        </div>
+        <div class="txn-table-row">
+          <div class="txn-icon" style="background:rgba(91,156,246,0.1);width:30px;height:30px;font-size:13px">💼</div>
+          <div><div class="txn-title">Salary Credit</div><div class="txn-meta">18 Mar 2025</div></div>
+          <div><span class="type-badge income">Income</span></div>
+          <div style="color:var(--muted);font-size:12.5px">HDFC Savings</div>
+          <div class="txn-amount pos" style="font-size:13px">+₹1,20,000</div>
+          <div class="row-actions"><button class="row-btn">✏</button><button class="row-btn" style="color:var(--red)">✕</button></div>
+        </div>
+        <div class="txn-table-row">
+          <div class="txn-icon" style="background:rgba(245,166,35,0.1);width:30px;height:30px;font-size:13px">✈️</div>
+          <div><div class="txn-title">IndiGo — Goa</div><div class="txn-meta">15 Mar 2025</div></div>
+          <div><span class="cat-pill" style="font-size:11px;padding:3px 8px">Trip</span></div>
+          <div style="color:var(--muted);font-size:12.5px">Axis Credit Card</div>
+          <div class="txn-amount neg" style="font-size:13px">−₹8,200</div>
+          <div class="row-actions"><button class="row-btn">✏</button><button class="row-btn" style="color:var(--red)">✕</button></div>
+        </div>
+        <div class="txn-table-row">
+          <div class="txn-icon" style="background:rgba(183,148,244,0.1);width:30px;height:30px;font-size:13px">🎉</div>
+          <div><div class="txn-title">Birthday Dinner</div><div class="txn-meta">12 Mar 2025</div></div>
+          <div><span class="cat-pill" style="font-size:11px;padding:3px 8px">Party</span></div>
+          <div style="color:var(--muted);font-size:12.5px">Cash</div>
+          <div class="txn-amount neg" style="font-size:13px">−₹3,200</div>
+          <div class="row-actions"><button class="row-btn">✏</button><button class="row-btn" style="color:var(--red)">✕</button></div>
+        </div>
+        <div class="txn-table-row">
+          <div class="txn-icon" style="background:rgba(78,205,196,0.1);width:30px;height:30px;font-size:13px">🌅</div>
+          <div><div class="txn-title">Cafe Coffee Day</div><div class="txn-meta">10 Mar 2025</div></div>
+          <div><span class="cat-pill" style="font-size:11px;padding:3px 8px">Weekend</span></div>
+          <div style="color:var(--muted);font-size:12.5px">Cash</div>
+          <div class="txn-amount neg" style="font-size:13px">−₹680</div>
+          <div class="row-actions"><button class="row-btn">✏</button><button class="row-btn" style="color:var(--red)">✕</button></div>
+        </div>
+        <div class="txn-table-row">
+          <div class="txn-icon" style="background:rgba(255,107,107,0.1);width:30px;height:30px;font-size:13px">🏥</div>
+          <div><div class="txn-title">Apollo Pharmacy</div><div class="txn-meta">8 Mar 2025</div></div>
+          <div><span class="cat-pill" style="font-size:11px;padding:3px 8px">Medical</span></div>
+          <div style="color:var(--muted);font-size:12.5px">HDFC Savings</div>
+          <div class="txn-amount neg" style="font-size:13px">−₹1,240</div>
+          <div class="row-actions"><button class="row-btn">✏</button><button class="row-btn" style="color:var(--red)">✕</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ ASSETS ════ -->
+  <div id="page-assets" class="page">
+    <div class="topbar">
+      <div class="topbar-title">Assets</div>
+      <button class="topbar-action-ghost" onclick="openModal('modal-import')">↑ Import CSV</button>
+      <button class="topbar-action-ghost">↓ Export</button>
+      <button class="topbar-action" onclick="openModal('modal-add-asset')">+ Add Asset</button>
+    </div>
+    <div class="content">
+      <div class="grid-2-1">
+        <!-- Left: asset list by type -->
+        <div>
+          <!-- Stocks -->
+          <div class="card mb16">
+            <div class="section-header">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:16px">📈</span>
+                <div class="section-title">Stocks</div>
+                <div class="topbar-badge" style="font-size:10px">4 holdings</div>
+              </div>
+              <div style="font-family:var(--font-mono);font-size:15px;color:var(--accent)">₹8,40,000</div>
+            </div>
+            <div class="asset-row">
+              <div class="asset-icon">RELIANCE</div>
+              <div><div class="asset-name">Reliance Industries</div><div class="asset-sub">120 shares · NSE</div></div>
+              <div><div class="asset-val">₹2,96,400</div><div class="asset-pct">35.3%</div></div>
+            </div>
+            <div class="asset-row">
+              <div class="asset-icon">INFY</div>
+              <div><div class="asset-name">Infosys</div><div class="asset-sub">80 shares · NSE</div></div>
+              <div><div class="asset-val">₹1,44,800</div><div class="asset-pct">17.2%</div></div>
+            </div>
+            <div class="asset-row">
+              <div class="asset-icon" style="font-size:12px;">TCS</div>
+              <div><div class="asset-name">TCS</div><div class="asset-sub">30 shares · NSE</div></div>
+              <div><div class="asset-val">₹1,18,500</div><div class="asset-pct">14.1%</div></div>
+            </div>
+          </div>
+
+          <!-- Mutual Funds -->
+          <div class="card mb16">
+            <div class="section-header">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:16px">📊</span>
+                <div class="section-title">Mutual Funds</div>
+              </div>
+              <div style="font-family:var(--font-mono);font-size:15px;color:var(--accent)">₹6,20,000</div>
+            </div>
+            <div class="asset-row">
+              <div class="asset-icon" style="font-size:10px">PPFAS</div>
+              <div><div class="asset-name">Parag Parikh Flexi Cap</div><div class="asset-sub">Direct · Growth</div></div>
+              <div><div class="asset-val">₹3,80,000</div><div class="asset-pct">61.3%</div></div>
+            </div>
+            <div class="asset-row">
+              <div class="asset-icon" style="font-size:10px">MIRAE</div>
+              <div><div class="asset-name">Mirae Asset ELSS</div><div class="asset-sub">Direct · Growth</div></div>
+              <div><div class="asset-val">₹2,40,000</div><div class="asset-pct">38.7%</div></div>
+            </div>
+          </div>
+
+          <!-- Other assets -->
+          <div class="grid-2">
+            <div class="card">
+              <div class="section-header mb8">
+                <div style="display:flex;align-items:center;gap:6px;"><span>🪙</span><div class="section-title">Gold</div></div>
+                <div style="font-family:var(--font-mono);font-size:14px;color:var(--accent)">₹4,80,000</div>
+              </div>
+              <div style="font-size:12px;color:var(--muted)">SGB + Physical · 80g</div>
+            </div>
+            <div class="card">
+              <div class="section-header mb8">
+                <div style="display:flex;align-items:center;gap:6px;"><span>🏦</span><div class="section-title">Bank / FD</div></div>
+                <div style="font-family:var(--font-mono);font-size:14px;color:var(--accent)">₹9,00,000</div>
+              </div>
+              <div style="font-size:12px;color:var(--muted)">FD + Savings balance</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: summary -->
+        <div>
+          <div class="card mb16">
+            <div class="section-title mb12">Allocation</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--muted)">Stocks</span><span style="font-family:var(--font-mono)">29.6%</span></div>
+                <div class="prog-bar"><div class="prog-fill" style="width:30%"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--muted)">Mutual Funds</span><span style="font-family:var(--font-mono)">21.8%</span></div>
+                <div class="prog-bar"><div class="prog-fill blue" style="width:22%"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--muted)">Bank / FD</span><span style="font-family:var(--font-mono)">31.7%</span></div>
+                <div class="prog-bar"><div class="prog-fill amber" style="width:32%"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--muted)">Gold</span><span style="font-family:var(--font-mono)">16.9%</span></div>
+                <div class="prog-bar"><div class="prog-fill teal" style="width:17%"></div></div>
+              </div>
+            </div>
+            <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:var(--muted)">Total Assets</span>
+              <span style="font-family:var(--font-mono);font-size:18px;color:var(--accent);font-weight:500;">₹28.4L</span>
+            </div>
+          </div>
+
+          <!-- Accounts breakdown -->
+          <div class="card">
+            <div class="section-title mb12">Accounts</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg3);border-radius:8px;">
+                <div style="display:flex;align-items:center;gap:8px;"><span>🏦</span><div><div style="font-size:13px;font-weight:500">HDFC Savings</div><div style="font-size:11px;color:var(--muted)">Bank account</div></div></div>
+                <div style="font-family:var(--font-mono);font-size:13px;">₹1,84,200</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg3);border-radius:8px;">
+                <div style="display:flex;align-items:center;gap:8px;"><span>💳</span><div><div style="font-size:13px;font-weight:500">Axis Credit Card</div><div style="font-size:11px;color:var(--muted)">Credit card</div></div></div>
+                <div style="font-family:var(--font-mono);font-size:13px;color:var(--red);">−₹24,000</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg3);border-radius:8px;">
+                <div style="display:flex;align-items:center;gap:8px;"><span>💵</span><div><div style="font-size:13px;font-weight:500">Cash</div><div style="font-size:11px;color:var(--muted)">Wallet</div></div></div>
+                <div style="font-family:var(--font-mono);font-size:13px;">₹8,400</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ LIABILITIES ════ -->
+  <div id="page-liabilities" class="page">
+    <div class="topbar">
+      <div class="topbar-title">Liabilities</div>
+      <button class="topbar-action-ghost" onclick="openModal('modal-import')">↑ Import CSV</button>
+      <button class="topbar-action-ghost">↓ Export</button>
+      <button class="topbar-action" onclick="openModal('modal-add-liab')">+ Add Liability</button>
+    </div>
+    <div class="content">
+      <div class="grid-1-2">
+        <!-- Summary -->
+        <div>
+          <div class="card mb16">
+            <div class="kpi-accent-bar red"></div>
+            <div class="kpi-label">Total Outstanding</div>
+            <div class="kpi-value red">₹4,18,000</div>
+            <div class="kpi-delta down mt8">vs ₹4,36,000 last month</div>
+          </div>
+          <div class="card">
+            <div class="section-title mb12">Breakdown</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--muted)">Personal Loan</span><span style="font-family:var(--font-mono);color:var(--red)">₹2,80,000</span></div>
+                <div class="prog-bar"><div class="prog-fill red" style="width:67%"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--muted)">Credit Card Due</span><span style="font-family:var(--font-mono);color:var(--red)">₹88,000</span></div>
+                <div class="prog-bar"><div class="prog-fill amber" style="width:21%"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--muted)">Friend's Loan</span><span style="font-family:var(--font-mono);color:var(--red)">₹50,000</span></div>
+                <div class="prog-bar"><div class="prog-fill purple" style="width:12%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- List -->
+        <div class="card">
+          <div class="section-title mb16">All Liabilities</div>
+          <div class="liab-row">
+            <div>
+              <div class="liab-name">SBI Personal Loan</div>
+              <div class="liab-sub">Personal loan</div>
+            </div>
+            <div>
+              <div class="liab-outstanding">₹2,80,000</div>
+              <div class="liab-total">of ₹5,00,000</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="row-btn" style="width:28px;height:28px;">✏</button>
+              <button class="row-btn" style="width:28px;height:28px;color:var(--red)">✕</button>
+            </div>
+          </div>
+          <div class="liab-row">
+            <div>
+              <div class="liab-name">Axis Credit Card</div>
+              <div class="liab-sub">Credit card outstanding</div>
+            </div>
+            <div>
+              <div class="liab-outstanding">₹88,000</div>
+              <div class="liab-total">of ₹2,00,000 limit</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="row-btn" style="width:28px;height:28px;">✏</button>
+              <button class="row-btn" style="width:28px;height:28px;color:var(--red)">✕</button>
+            </div>
+          </div>
+          <div class="liab-row">
+            <div>
+              <div class="liab-name">Borrowed from Rohan</div>
+              <div class="liab-sub">Personal</div>
+            </div>
+            <div>
+              <div class="liab-outstanding">₹50,000</div>
+              <div class="liab-total">of ₹50,000</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="row-btn" style="width:28px;height:28px;">✏</button>
+              <button class="row-btn" style="width:28px;height:28px;color:var(--red)">✕</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ GOALS ════ -->
+  <div id="page-goals" class="page">
+    <div class="topbar">
+      <div class="topbar-title">Goals</div>
+      <button class="topbar-action" onclick="openModal('modal-add-goal')">+ New Goal</button>
+    </div>
+    <div class="content">
+      <div class="grid-3">
+        <div class="goal-card">
+          <div class="goal-name">Emergency Fund</div>
+          <div class="goal-date">Target: Dec 2025</div>
+          <div class="goal-amounts">
+            <div><div style="font-size:11px;color:var(--muted);margin-bottom:2px">Saved</div><div class="goal-current">₹3,60,000</div></div>
+            <div style="text-align:right"><div style="font-size:11px;color:var(--muted);margin-bottom:2px">Goal</div><div class="goal-target">₹6,00,000</div></div>
+          </div>
+          <div class="prog-bar"><div class="prog-fill" style="width:60%"></div></div>
+          <div class="goal-pct">60% complete · ₹2,40,000 remaining</div>
+          <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+            <button class="btn-ghost" style="font-size:12px;padding:6px 12px;" onclick="openModal('modal-update-goal')">Update progress</button>
+          </div>
+        </div>
+
+        <div class="goal-card">
+          <div class="goal-name">Europe Trip</div>
+          <div class="goal-date">Target: Oct 2025</div>
+          <div class="goal-amounts">
+            <div><div style="font-size:11px;color:var(--muted);margin-bottom:2px">Saved</div><div class="goal-current">₹80,000</div></div>
+            <div style="text-align:right"><div style="font-size:11px;color:var(--muted);margin-bottom:2px">Goal</div><div class="goal-target">₹2,00,000</div></div>
+          </div>
+          <div class="prog-bar"><div class="prog-fill amber" style="width:40%"></div></div>
+          <div class="goal-pct">40% complete · ₹1,20,000 remaining</div>
+          <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+            <button class="btn-ghost" style="font-size:12px;padding:6px 12px;" onclick="openModal('modal-update-goal')">Update progress</button>
+          </div>
+        </div>
+
+        <div class="goal-card">
+          <div class="goal-name">MacBook Pro</div>
+          <div class="goal-date">Target: Jun 2025</div>
+          <div class="goal-amounts">
+            <div><div style="font-size:11px;color:var(--muted);margin-bottom:2px">Saved</div><div class="goal-current" style="color:var(--blue)">₹1,20,000</div></div>
+            <div style="text-align:right"><div style="font-size:11px;color:var(--muted);margin-bottom:2px">Goal</div><div class="goal-target">₹1,50,000</div></div>
+          </div>
+          <div class="prog-bar"><div class="prog-fill blue" style="width:80%"></div></div>
+          <div class="goal-pct">80% complete · Almost there!</div>
+          <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+            <button class="btn-ghost" style="font-size:12px;padding:6px 12px;" onclick="openModal('modal-update-goal')">Update progress</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PROFILE ════ -->
+  <div id="page-profile" class="page">
+    <div class="topbar">
+      <div class="topbar-title">Profile</div>
+    </div>
+    <div class="content">
+      <div class="grid-2-1">
+        <div class="card">
+          <div class="section-title mb16">Personal Information</div>
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input class="form-input" value="Rahul Kumar" type="text"/>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input class="form-input" value="rahul@gmail.com" type="email"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Base Currency</label>
+              <select class="form-select">
+                <option selected>INR — Indian Rupee</option>
+                <option>USD — US Dollar</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+            <button class="btn-primary">Save Changes</button>
+          </div>
+        </div>
+        <div>
+          <div class="card mb16" style="text-align:center;padding:24px;">
+            <div class="profile-avatar-lg" style="margin:0 auto 12px;">RK</div>
+            <div style="font-size:16px;font-weight:500;">Rahul Kumar</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">rahul@gmail.com</div>
+            <div style="margin-top:12px;font-size:11px;color:var(--muted2);">Member since Jan 2025</div>
+          </div>
+          <div class="card">
+            <div class="section-title mb12">Manage Accounts</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg3);border-radius:8px;font-size:13px;">
+                <span>🏦 HDFC Savings</span>
+                <button class="row-btn" style="width:24px;height:24px;color:var(--red)">✕</button>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg3);border-radius:8px;font-size:13px;">
+                <span>💳 Axis Credit Card</span>
+                <button class="row-btn" style="width:24px;height:24px;color:var(--red)">✕</button>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg3);border-radius:8px;font-size:13px;">
+                <span>💵 Cash</span>
+                <button class="row-btn" style="width:24px;height:24px;color:var(--red)">✕</button>
+              </div>
+              <button class="btn-ghost" style="margin-top:4px;">+ Add Account</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end .main -->
+
+<!-- ══════════ MODALS ══════════ -->
+
+<!-- Add Transaction -->
+<div class="modal-overlay" id="modal-add-txn" onclick="handleOverlayClick(event,'modal-add-txn')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Transaction</div>
+      <button class="modal-close" onclick="closeModal('modal-add-txn')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select class="form-select">
+          <option>Expense</option>
+          <option>Income</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" type="date" value="2025-03-20"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <input class="form-input" type="text" placeholder="e.g. Big Basket groceries"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Amount (₹)</label>
+        <input class="form-input" type="number" placeholder="0.00"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Account</label>
+        <select class="form-select">
+          <option>HDFC Savings</option>
+          <option>Axis Credit Card</option>
+          <option>Cash</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select class="form-select" id="txn-category-select" style="flex:1;">
+          <option value="">Select category…</option>
+          <option>🛒 Grocery</option>
+          <option>🏥 Medical</option>
+          <option>✈️ Trip</option>
+          <option>🌅 Weekend</option>
+          <option>🎉 Party</option>
+        </select>
+        <button class="btn-ghost" style="white-space:nowrap;padding:8px 12px;font-size:12px;" onclick="toggleNewCategory()">+ New</button>
+      </div>
+      <div id="new-category-row" style="display:none;margin-top:8px;display:none;gap:8px;align-items:center;">
+        <input class="form-input" id="new-category-input" type="text" placeholder="Category name e.g. Subscriptions" style="flex:1;"/>
+        <button class="btn-primary" style="white-space:nowrap;padding:9px 14px;font-size:12px;" onclick="addNewCategory()">Add</button>
+        <button class="btn-ghost" style="padding:8px 10px;font-size:12px;" onclick="toggleNewCategory()">✕</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes (optional)</label>
+      <input class="form-input" type="text" placeholder="Any notes…"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-add-txn')">Cancel</button>
+      <button class="btn-primary">Save Transaction</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Asset -->
+<div class="modal-overlay" id="modal-add-asset" onclick="handleOverlayClick(event,'modal-add-asset')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Asset</div>
+      <button class="modal-close" onclick="closeModal('modal-add-asset')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Asset Type</label>
+      <div class="account-cards">
+        <div class="account-card active"><div class="account-card-name">📈 Stocks</div></div>
+        <div class="account-card"><div class="account-card-name">📊 Mutual Fund</div></div>
+        <div class="account-card"><div class="account-card-name">🪙 Gold</div></div>
+        <div class="account-card"><div class="account-card-name">₿ Crypto</div></div>
+        <div class="account-card"><div class="account-card-name">🏦 Bank / FD</div></div>
+        <div class="account-card"><div class="account-card-name">💵 Cash</div></div>
+      </div>
+    </div>
+    <div class="form-group mt12">
+      <label class="form-label">Name</label>
+      <input class="form-input" type="text" placeholder="e.g. Reliance Industries"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Current Value (₹)</label>
+        <input class="form-input" type="number" placeholder="0"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Units / Quantity</label>
+        <input class="form-input" type="text" placeholder="e.g. 100 shares"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes (optional)</label>
+      <input class="form-input" type="text" placeholder="Exchange, folio number, etc."/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-add-asset')">Cancel</button>
+      <button class="btn-primary">Save Asset</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Liability -->
+<div class="modal-overlay" id="modal-add-liab" onclick="handleOverlayClick(event,'modal-add-liab')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Liability</div>
+      <button class="modal-close" onclick="closeModal('modal-add-liab')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Name</label>
+      <input class="form-input" type="text" placeholder="e.g. SBI Personal Loan"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Total Amount (₹)</label>
+        <input class="form-input" type="number" placeholder="0"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Outstanding Amount (₹)</label>
+        <input class="form-input" type="number" placeholder="0"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes (optional)</label>
+      <input class="form-input" type="text" placeholder="Lender, due date, etc."/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-add-liab')">Cancel</button>
+      <button class="btn-primary">Save Liability</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Goal -->
+<div class="modal-overlay" id="modal-add-goal" onclick="handleOverlayClick(event,'modal-add-goal')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">New Goal</div>
+      <button class="modal-close" onclick="closeModal('modal-add-goal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Goal Name</label>
+      <input class="form-input" type="text" placeholder="e.g. Emergency Fund"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Target Amount (₹)</label>
+        <input class="form-input" type="number" placeholder="0"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Target Date</label>
+        <input class="form-input" type="date"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Current Amount (₹)</label>
+      <input class="form-input" type="number" placeholder="How much have you saved so far?"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-add-goal')">Cancel</button>
+      <button class="btn-primary">Create Goal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Update Goal -->
+<div class="modal-overlay" id="modal-update-goal" onclick="handleOverlayClick(event,'modal-update-goal')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Update Progress</div>
+      <button class="modal-close" onclick="closeModal('modal-update-goal')">✕</button>
+    </div>
+    <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:500;margin-bottom:2px">Emergency Fund</div>
+      <div style="font-size:12px;color:var(--muted)">Target: ₹6,00,000 by Dec 2025</div>
+      <div class="prog-bar mt8"><div class="prog-fill" style="width:60%"></div></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Current Saved Amount (₹)</label>
+      <input class="form-input" type="number" value="360000"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-update-goal')">Cancel</button>
+      <button class="btn-primary">Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- CSV Import -->
+<div class="modal-overlay" id="modal-import" onclick="handleOverlayClick(event,'modal-import')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Import CSV</div>
+      <button class="modal-close" onclick="closeModal('modal-import')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Import For</label>
+      <div class="account-cards">
+        <div class="account-card active"><div class="account-card-name">Transactions</div></div>
+        <div class="account-card"><div class="account-card-name">Assets</div></div>
+        <div class="account-card"><div class="account-card-name">Liabilities</div></div>
+      </div>
+    </div>
+    <div class="csv-zone mt12">
+      <div class="csv-icon">📄</div>
+      <div class="csv-text">Drop your CSV file here</div>
+      <div class="csv-sub">or click to browse · must match our format</div>
+    </div>
+    <div style="margin-top:12px;padding:12px;background:var(--bg3);border-radius:var(--radius-sm);font-size:12px;color:var(--muted);">
+      <div style="font-weight:500;color:var(--text);margin-bottom:6px;">Required columns (transactions)</div>
+      <code style="font-family:var(--font-mono);font-size:11px;color:var(--accent);">date, type, amount, category, account_name, notes</code>
+      <div style="margin-top:8px;display:flex;gap:8px;">
+        <button class="btn-ghost" style="font-size:11px;padding:4px 10px;">↓ Download template</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-import')">Cancel</button>
+      <button class="btn-primary">Import</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function goTo(page, el) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    if (el) el.classList.add('active');
+  }
+
+  function openModal(id) {
+    document.getElementById(id).classList.add('open');
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  function handleOverlayClick(e, id) {
+    if (e.target === document.getElementById(id)) closeModal(id);
+  }
+
+  function setPeriod(el) {
+    el.closest('.period-tabs').querySelectorAll('.period-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function toggleNewCategory() {
+    const row = document.getElementById('new-category-row');
+    const isHidden = row.style.display === 'none' || row.style.display === '';
+    row.style.display = isHidden ? 'flex' : 'none';
+    if (isHidden) document.getElementById('new-category-input').focus();
+  }
+
+  function addNewCategory() {
+    const input = document.getElementById('new-category-input');
+    const val = input.value.trim();
+    if (!val) return;
+    const select = document.getElementById('txn-category-select');
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = val;
+    select.appendChild(opt);
+    select.value = val;
+    input.value = '';
+    document.getElementById('new-category-row').style.display = 'none';
+  }
+
+  // Filter chips toggle
+  document.querySelectorAll('.filter-bar').forEach(bar => {
+    bar.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        bar.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+      });
+    });
+  });
+
+  // Account card toggle in modals
+  document.querySelectorAll('.account-cards').forEach(group => {
+    group.querySelectorAll('.account-card').forEach(card => {
+      card.addEventListener('click', () => {
+        group.querySelectorAll('.account-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+      });
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+name,type,current_value,units,notes
+Reliance,stocks,25000,10,NSE
+TCS,stocks,20000,5,NSE
+SIP Direct Fund,mutual_funds,50000,,Regular SIP
+Physical Gold,gold,300000,50,50 grams at ₹6000/gram

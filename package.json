@@ -1,0 +1,39 @@
+{
+  "name": "finsight",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "add-shadcn": "npx shadcn-ui@latest",
+    "seed:data": "./node_modules/.bin/tsc --module commonjs --target ES2020 --moduleResolution node --esModuleInterop --skipLibCheck --types node --outDir /tmp/finsight-seed-preview scripts/previewSeed.ts && NODE_PATH=\"$PWD/node_modules\" node /tmp/finsight-seed-preview/scripts/previewSeed.js",
+    "seed:generate": "npm run seed:data"
+  },
+  "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.1",
+    "@radix-ui/react-select": "^2.0.0",
+    "@radix-ui/react-slot": "^1.0.2",
+    "@supabase/supabase-js": "^2.38.0",
+    "clsx": "^2.0.0",
+    "date-fns": "^2.30.0",
+    "lucide-react": "^0.294.0",
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^2.10.0",
+    "tailwind-merge": "^2.2.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "autoprefixer": "^10.4.0",
+    "dotenv": "^17.3.1",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5.0.0"
+  }
+}
