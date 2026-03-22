@@ -326,27 +326,6 @@ export default function Dashboard() {
     )
   }
 
-  if (!user) {
-    return (
-      <div className="p-4 md:p-7">
-        <div className="bg-bg2 border border-border rounded-3xl p-10 text-center max-w-2xl">
-          <h2 className="font-display text-3xl text-text mb-3">
-            Sign in to view your dashboard
-          </h2>
-          <p className="text-muted mb-6">
-            Your finance summary, trends, and recent transactions appear here once your session is active.
-          </p>
-          <a
-            href="/auth/login"
-            className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-accent text-black font-medium hover:bg-accent2 transition-colors"
-          >
-            Go to Login
-          </a>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="p-4 md:p-7 space-y-6 animate-fade-in">
       {summaryError ? (

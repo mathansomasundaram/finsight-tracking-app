@@ -2,6 +2,14 @@ import { supabase } from '@/lib/supabase'
 import { User } from '@/types/index'
 import { handleSupabaseError } from '@/lib/supabaseErrors'
 
+function getAppOrigin(): string {
+  if (typeof window !== 'undefined' && window.location.origin) {
+    return window.location.origin
+  }
+
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+}
+
 /**
  * Maps Supabase Auth User to User interface
  */
@@ -133,7 +141,7 @@ export async function signInWithGoogle(): Promise<User> {
     const { data: authData, error: signInError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+        redirectTo: `${getAppOrigin()}/auth/callback`,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -166,7 +174,7 @@ export async function signInWithGithub(): Promise<User> {
     const { data: authData, error: signInError } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+        redirectTo: `${getAppOrigin()}/auth/callback`,
       },
     })
 
@@ -348,7 +356,7 @@ export async function verifyEmail(token: string, type: string): Promise<void> {
 export async function requestPasswordReset(email: string): Promise<void> {
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password`,
+      redirectTo: `${getAppOrigin()}/auth/reset-password`,
     })
 
     if (error) throw error
