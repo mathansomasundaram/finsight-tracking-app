@@ -19,6 +19,9 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT NOT NULL,
   base_currency TEXT DEFAULT 'INR',
   avatar_initials TEXT DEFAULT 'U',
+  is_disabled BOOLEAN DEFAULT FALSE,
+  disabled_at TIMESTAMP WITH TIME ZONE,
+  disabled_reason TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   CONSTRAINT users_email_valid CHECK (email ~ '^[^\s@]+@[^\s@]+\.[^\s@]+$')
@@ -173,6 +176,57 @@ CREATE POLICY "Users can create their own profile" ON users
 
 CREATE POLICY "Users can update their own profile" ON users
   FOR UPDATE USING (auth.uid() = id);
+
+-- Account deletion is handled through RPC for a cleaner UX.
+CREATE OR REPLACE FUNCTION delete_current_user_data()
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id UUID := auth.uid();
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  DELETE FROM users
+  WHERE id = v_user_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'User not found or not accessible';
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION deactivate_current_user(p_reason TEXT DEFAULT NULL)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id UUID := auth.uid();
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  UPDATE users
+  SET
+    is_disabled = TRUE,
+    disabled_at = NOW(),
+    disabled_reason = NULLIF(BTRIM(p_reason), ''),
+    updated_at = NOW()
+  WHERE id = v_user_id
+    AND is_disabled = FALSE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'User not found or already disabled';
+  END IF;
+END;
+$$;
 
 -- Accounts table policies
 CREATE POLICY "Users can view their own accounts (excluding deleted)" ON accounts

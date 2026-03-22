@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Edit2, Trash2, Plus, LogOut } from 'lucide-react'
+import { Edit2, Trash2, Plus, LogOut, AlertTriangle } from 'lucide-react'
 import { Toast, useToast } from '@/components/ui/Toast'
 import { useAuth } from '@/hooks/useAuth'
 import { useAccounts as useAccountsHook } from '@/hooks/useData'
 import { addAccount, updateAccount, deleteAccount } from '@/lib/services'
-import { updateUserProfile } from '@/lib/auth/authService'
+import { updateUserProfile, deleteCurrentUserData, disableCurrentUser, reauthenticateCurrentUser } from '@/lib/auth/authService'
 import { AccountModal } from '@/components/modals/AccountModal'
 import { Account } from '@/types/index'
 import { FormSkeleton } from '@/components/ui/Skeleton'
@@ -27,6 +27,9 @@ export default function Profile() {
     baseCurrency: user?.baseCurrency || 'INR',
   })
   const [hasChanges, setHasChanges] = useState(false)
+  const [isDeletingData, setIsDeletingData] = useState(false)
+  const [isDisablingAccount, setIsDisablingAccount] = useState(false)
+  const [disableReason, setDisableReason] = useState('')
 
   const isLoading = isAuthLoading || isAccountsLoading
 
@@ -138,6 +141,66 @@ export default function Profile() {
     } catch (error) {
       addToast('Failed to sign out', 'error')
       console.error('Error signing out:', error)
+    }
+  }
+
+  const handleDeleteFinsightData = async () => {
+    if (!user || isDeletingData) return
+
+    const password = window.prompt('Re-enter your current password to permanently delete your Finsight data')
+    if (!password) return
+
+    const confirmed = window.confirm(
+      'This will permanently delete your Finsight profile and all tracked accounts, categories, transactions, assets, liabilities, and goals. Continue?'
+    )
+
+    if (!confirmed) return
+
+    try {
+      setIsDeletingData(true)
+      await reauthenticateCurrentUser(password)
+      await deleteCurrentUserData()
+      await logout()
+      addToast('Your Finsight data was deleted', 'success')
+      router.replace('/auth/login')
+    } catch (error) {
+      addToast('Failed to delete your Finsight data', 'error')
+      console.error('Error deleting Finsight data:', error)
+    } finally {
+      setIsDeletingData(false)
+    }
+  }
+
+  const handleDisableAccount = async () => {
+    if (!user || isDisablingAccount) return
+
+    const trimmedReason = disableReason.trim()
+    if (!trimmedReason) {
+      addToast('Please tell us why you are disabling your account', 'error')
+      return
+    }
+
+    const password = window.prompt('Re-enter your current password to disable your account')
+    if (!password) return
+
+    const confirmed = window.confirm(
+      'Disabling your account will sign you out and block future access until it is reactivated. Your finance data will be kept. Continue?'
+    )
+
+    if (!confirmed) return
+
+    try {
+      setIsDisablingAccount(true)
+      await reauthenticateCurrentUser(password)
+      await disableCurrentUser(trimmedReason)
+      await logout()
+      addToast('Your account has been disabled', 'success')
+      router.replace('/auth/login')
+    } catch (error) {
+      addToast('Failed to disable your account', 'error')
+      console.error('Error disabling account:', error)
+    } finally {
+      setIsDisablingAccount(false)
     }
   }
 
@@ -328,13 +391,72 @@ export default function Profile() {
       </div>
 
       {/* Sign Out */}
-      <button
-        onClick={handleSignOut}
-        className="w-full px-4 py-3 rounded-lg bg-red/10 border border-red/30 text-red hover:bg-red/20 transition-colors font-medium text-13"
-      >
-        <LogOut className="w-4 h-4 inline mr-2" />
-        Sign Out
-      </button>
+      <div className="space-y-4">
+        <button
+          onClick={handleSignOut}
+          className="w-full px-4 py-3 rounded-lg bg-red/10 border border-red/30 text-red hover:bg-red/20 transition-colors font-medium text-13"
+        >
+          <LogOut className="w-4 h-4 inline mr-2" />
+          Sign Out
+        </button>
+
+        <div className="bg-bg2 border border-border rounded-2xl p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-accent/10 text-accent flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-text font-medium mb-1">Disable Account</h4>
+              <p className="text-muted text-13 mb-4">
+                We will keep your finance data, but your account will be blocked until it is reactivated. Please tell us why you are leaving.
+              </p>
+              <textarea
+                value={disableReason}
+                onChange={(e) => setDisableReason(e.target.value)}
+                rows={3}
+                placeholder="Reason for disabling your account"
+                className="w-full px-4 py-3 rounded-lg bg-bg3 border border-border text-text placeholder-muted transition-colors hover:border-border2 focus:outline-none focus:border-accent mb-4 resize-none"
+              />
+              <button
+                onClick={handleDisableAccount}
+                disabled={isDisablingAccount || !disableReason.trim()}
+                className={`px-4 py-2.5 rounded-lg font-medium text-13 transition-colors ${
+                  isDisablingAccount || !disableReason.trim()
+                    ? 'bg-bg3 text-muted2 cursor-not-allowed opacity-60'
+                    : 'bg-accent/85 text-black hover:bg-accent'
+                }`}
+              >
+                {isDisablingAccount ? 'Disabling...' : 'Disable My Account'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-red/5 border border-red/20 rounded-2xl p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-red/10 text-red flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-text font-medium mb-1">Delete Finsight Data</h4>
+              <p className="text-muted text-13 mb-4">
+                This removes your Finsight profile and all finance data stored in the app. Your authentication identity may still exist in Supabase and can sign in again later.
+              </p>
+              <button
+                onClick={handleDeleteFinsightData}
+                disabled={isDeletingData}
+                className={`px-4 py-2.5 rounded-lg font-medium text-13 transition-colors ${
+                  isDeletingData
+                    ? 'bg-bg3 text-muted2 cursor-not-allowed opacity-60'
+                    : 'bg-red text-white hover:bg-red/90'
+                }`}
+              >
+                {isDeletingData ? 'Deleting...' : 'Delete My Finsight Data'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Toast */}
       <Toast messages={messages} onRemove={removeToast} />

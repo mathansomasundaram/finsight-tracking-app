@@ -18,6 +18,13 @@ export default function AuthCallbackPage() {
       const code = params.get('code')
       const errorDescription = params.get('error_description')
 
+      console.log('[AuthDebug] callback:start', {
+        href: window.location.href,
+        origin: window.location.origin,
+        hasCode: Boolean(code),
+        errorDescription,
+      })
+
       if (errorDescription) {
         if (!isActive) return
         setError(errorDescription)
@@ -31,42 +38,15 @@ export default function AuthCallbackPage() {
           if (exchangeError) throw exchangeError
         }
 
-        // Get the authenticated user
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-        if (userError || !user) throw userError || new Error('Failed to get user')
+        const { data: sessionData } = await supabase.auth.getSession()
+        console.log('[AuthDebug] callback:session', {
+          hasSession: Boolean(sessionData.session),
+          userId: sessionData.session?.user?.id || null,
+          userEmail: sessionData.session?.user?.email || null,
+        })
 
-        // Create user profile in database if it doesn't exist
-        const { data: existingUser, error: checkError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('id', user.id)
-          .single()
-
-        if (checkError?.code === 'PGRST116') {
-          // User doesn't exist, create profile
-          const { error: insertError } = await supabase
-            .from('users')
-            .insert({
-              id: user.id,
-              email: user.email || '',
-              name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-              base_currency: 'INR',
-              avatar_initials: (user.user_metadata?.name || user.email?.split('@')[0] || 'U')
-                .split(' ')
-                .map((part: string) => part[0])
-                .join('')
-                .toUpperCase()
-                .slice(0, 2),
-            })
-
-          if (insertError) {
-            console.error('Failed to create user profile:', insertError)
-            throw insertError
-          }
-        } else if (checkError && checkError.code !== 'PGRST116') {
-          // Different error, log and throw
-          console.error('Error checking user:', checkError)
-          throw checkError
+        if (!sessionData.session?.user) {
+          throw new Error('Failed to establish authenticated session')
         }
 
         if (!isActive) return

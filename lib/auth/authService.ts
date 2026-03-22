@@ -2,12 +2,25 @@ import { supabase } from '@/lib/supabase'
 import { User } from '@/types/index'
 import { handleSupabaseError } from '@/lib/supabaseErrors'
 
+function logAuthDebug(label: string, payload: Record<string, unknown>): void {
+  console.log(`[AuthDebug] ${label}`, payload)
+}
+
 function getAppOrigin(): string {
+  const browserOrigin = typeof window !== 'undefined' ? window.location.origin : null
+  const fallbackOrigin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+  logAuthDebug('getAppOrigin', {
+    browserOrigin,
+    fallbackOrigin,
+    using: browserOrigin || fallbackOrigin,
+  })
+
   if (typeof window !== 'undefined' && window.location.origin) {
     return window.location.origin
   }
 
-  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  return fallbackOrigin
 }
 
 /**
@@ -38,6 +51,58 @@ function getErrorMessage(error: unknown): string {
   return sbError.message
 }
 
+async function ensureUserProfile(supabaseUser: any): Promise<User> {
+  const fallbackName = supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User'
+  const fallbackInitials = fallbackName
+    .split(' ')
+    .map((part: string) => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+
+  const { data: existingProfile, error: fetchError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', supabaseUser.id)
+    .maybeSingle()
+
+  if (fetchError) {
+    throw fetchError
+  }
+
+  if (existingProfile) {
+    if (existingProfile.is_disabled) {
+      await supabase.auth.signOut()
+      throw new Error('This account has been disabled. Please contact support if you need it reactivated.')
+    }
+
+    return mapSupabaseUserToUser(supabaseUser, existingProfile)
+  }
+
+  const { data: createdProfile, error: upsertError } = await supabase
+    .from('users')
+    .upsert(
+      {
+        id: supabaseUser.id,
+        email: supabaseUser.email || '',
+        name: fallbackName,
+        base_currency: 'INR',
+        avatar_initials: fallbackInitials,
+      },
+      {
+        onConflict: 'id',
+      }
+    )
+    .select()
+    .single()
+
+  if (upsertError) {
+    throw upsertError
+  }
+
+  return mapSupabaseUserToUser(supabaseUser, createdProfile)
+}
+
 /**
  * Sign up with email and password
  */
@@ -61,31 +126,7 @@ export async function signUpWithEmail(
     if (signUpError) throw signUpError
     if (!authData.user) throw new Error('Failed to create user')
 
-    // Create user profile in database
-    const { data: profile, error: profileError } = await supabase
-      .from('users')
-      .insert({
-        id: authData.user.id,
-        email,
-        name,
-        base_currency: 'INR',
-        avatar_initials: name
-          .split(' ')
-          .map((part: string) => part[0])
-          .join('')
-          .toUpperCase()
-          .slice(0, 2),
-      })
-      .select()
-      .single()
-
-    if (profileError) {
-      console.error('Error creating user profile:', profileError)
-      // Continue anyway, profile can be created on first login
-    }
-
-    const userData = mapSupabaseUserToUser(authData.user, profile)
-    return userData
+    return await ensureUserProfile(authData.user)
   } catch (error) {
     throw new Error(getErrorMessage(error))
   }
@@ -96,6 +137,11 @@ export async function signUpWithEmail(
  */
 export async function loginWithEmail(email: string, password: string): Promise<User> {
   try {
+    logAuthDebug('loginWithEmail:start', {
+      email,
+      browserOrigin: typeof window !== 'undefined' ? window.location.origin : null,
+    })
+
     const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -104,30 +150,7 @@ export async function loginWithEmail(email: string, password: string): Promise<U
     if (signInError) throw signInError
     if (!authData.user) throw new Error('Failed to sign in')
 
-    // Fetch user profile from database
-    const { data: profile, error: profileError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', authData.user.id)
-      .single()
-
-    if (profileError && profileError.code !== 'PGRST116') {
-      // If profile doesn't exist, create one
-      const { data: newProfile } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          email,
-          name: authData.user.user_metadata?.name || email.split('@')[0],
-          base_currency: 'INR',
-        })
-        .select()
-        .single()
-
-      return mapSupabaseUserToUser(authData.user, newProfile)
-    }
-
-    return mapSupabaseUserToUser(authData.user, profile)
+    return await ensureUserProfile(authData.user)
   } catch (error) {
     throw new Error(getErrorMessage(error))
   }
@@ -138,10 +161,17 @@ export async function loginWithEmail(email: string, password: string): Promise<U
  */
 export async function signInWithGoogle(): Promise<User> {
   try {
+    const redirectTo = `${getAppOrigin()}/auth/callback`
+    logAuthDebug('signInWithGoogle:start', {
+      browserOrigin: typeof window !== 'undefined' ? window.location.origin : null,
+      envAppUrl: process.env.NEXT_PUBLIC_APP_URL || null,
+      redirectTo,
+    })
+
     const { data: authData, error: signInError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${getAppOrigin()}/auth/callback`,
+        redirectTo,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -171,10 +201,17 @@ export async function signInWithGoogle(): Promise<User> {
  */
 export async function signInWithGithub(): Promise<User> {
   try {
+    const redirectTo = `${getAppOrigin()}/auth/callback`
+    logAuthDebug('signInWithGithub:start', {
+      browserOrigin: typeof window !== 'undefined' ? window.location.origin : null,
+      envAppUrl: process.env.NEXT_PUBLIC_APP_URL || null,
+      redirectTo,
+    })
+
     const { data: authData, error: signInError } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
-        redirectTo: `${getAppOrigin()}/auth/callback`,
+        redirectTo,
       },
     })
 
@@ -214,13 +251,7 @@ export async function getCurrentUser(): Promise<User | null> {
     const { data: sessionData } = await supabase.auth.getSession()
     if (!sessionData.session?.user) return null
 
-    const { data: profile } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', sessionData.session.user.id)
-      .single()
-
-    return mapSupabaseUserToUser(sessionData.session.user, profile)
+    return await ensureUserProfile(sessionData.session.user)
   } catch (error) {
     console.error('Error fetching current user:', error)
     return null
@@ -231,53 +262,15 @@ export async function getCurrentUser(): Promise<User | null> {
  * Listen to auth state changes
  */
 export function onAuthStateChange(callback: (user: User | null) => void): () => void {
-  const authSubscription = supabase.auth.onAuthStateChange(async (event, session) => {
+  const authSubscription = supabase.auth.onAuthStateChange((event, session) => {
     if (session?.user) {
-      try {
-        const { data: profile, error: profileError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-
-        // Check if profile doesn't exist (PGRST116 is the "not found" error)
-        if (profileError?.code === 'PGRST116' || !profile) {
-          // Create profile if it doesn't exist
-          const { data: newProfile, error: insertError } = await supabase
-            .from('users')
-            .insert({
-              id: session.user.id,
-              email: session.user.email || '',
-              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-              base_currency: 'INR',
-              avatar_initials: (session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'U')
-                .split(' ')
-                .map((part: string) => part[0])
-                .join('')
-                .toUpperCase()
-                .slice(0, 2),
-            })
-            .select()
-            .single()
-
-          if (insertError) {
-            console.error('Error creating user profile:', insertError)
-            callback(null)
-            return
-          }
-
-          callback(mapSupabaseUserToUser(session.user, newProfile))
-        } else if (profileError) {
-          // Different error occurred
-          console.error('Error fetching user profile:', profileError)
+      void Promise.resolve()
+        .then(() => ensureUserProfile(session.user))
+        .then((resolvedUser) => callback(resolvedUser))
+        .catch((error) => {
+          console.error('Error in onAuthStateChange:', error)
           callback(null)
-        } else {
-          callback(mapSupabaseUserToUser(session.user, profile))
-        }
-      } catch (error) {
-        console.error('Error in onAuthStateChange:', error)
-        callback(null)
-      }
+        })
     } else {
       callback(null)
     }
@@ -355,8 +348,16 @@ export async function verifyEmail(token: string, type: string): Promise<void> {
  */
 export async function requestPasswordReset(email: string): Promise<void> {
   try {
+    const redirectTo = `${getAppOrigin()}/auth/reset-password`
+    logAuthDebug('requestPasswordReset:start', {
+      email,
+      browserOrigin: typeof window !== 'undefined' ? window.location.origin : null,
+      envAppUrl: process.env.NEXT_PUBLIC_APP_URL || null,
+      redirectTo,
+    })
+
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${getAppOrigin()}/auth/reset-password`,
+      redirectTo,
     })
 
     if (error) throw error
@@ -375,6 +376,52 @@ export async function resetPassword(password: string): Promise<void> {
     })
 
     if (error) throw error
+  } catch (error) {
+    throw new Error(getErrorMessage(error))
+  }
+}
+
+export async function deleteCurrentUserData(): Promise<void> {
+  try {
+    const { error } = await supabase.rpc('delete_current_user_data')
+    if (error) throw error
+  } catch (error) {
+    throw new Error(getErrorMessage(error))
+  }
+}
+
+export async function disableCurrentUser(reason: string): Promise<void> {
+  try {
+    const { error } = await supabase.rpc('deactivate_current_user', {
+      p_reason: reason,
+    })
+    if (error) throw error
+  } catch (error) {
+    throw new Error(getErrorMessage(error))
+  }
+}
+
+export async function reauthenticateCurrentUser(password: string): Promise<void> {
+  try {
+    const { data: authUserData, error: userError } = await supabase.auth.getUser()
+    if (userError) throw userError
+
+    const authUser = authUserData.user
+    if (!authUser?.email) {
+      throw new Error('Unable to verify the current user session')
+    }
+
+    const provider = authUser.app_metadata?.provider
+    if (provider && provider !== 'email') {
+      throw new Error('Please sign in again with your provider before performing this action')
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: authUser.email,
+      password,
+    })
+
+    if (signInError) throw signInError
   } catch (error) {
     throw new Error(getErrorMessage(error))
   }

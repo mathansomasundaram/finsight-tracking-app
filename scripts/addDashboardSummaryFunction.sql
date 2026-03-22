@@ -1,6 +1,11 @@
 -- Adds the production-grade dashboard summary RPC for existing databases.
 -- Run this in the Supabase SQL Editor after the base schema is already installed.
 
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS is_disabled BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS disabled_at TIMESTAMP WITH TIME ZONE,
+  ADD COLUMN IF NOT EXISTS disabled_reason TEXT;
+
 CREATE OR REPLACE FUNCTION get_dashboard_summary(p_period TEXT DEFAULT '3m')
 RETURNS TABLE (
   total_assets NUMERIC,
@@ -294,6 +299,56 @@ BEGIN
 
   IF v_rows_updated = 0 THEN
     RAISE EXCEPTION 'Record not found or not accessible';
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION delete_current_user_data()
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id UUID := auth.uid();
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  DELETE FROM users
+  WHERE id = v_user_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'User not found or not accessible';
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION deactivate_current_user(p_reason TEXT DEFAULT NULL)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id UUID := auth.uid();
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  UPDATE users
+  SET
+    is_disabled = TRUE,
+    disabled_at = NOW(),
+    disabled_reason = NULLIF(BTRIM(p_reason), ''),
+    updated_at = NOW()
+  WHERE id = v_user_id
+    AND is_disabled = FALSE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'User not found or already disabled';
   END IF;
 END;
 $$;

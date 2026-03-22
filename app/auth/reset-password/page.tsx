@@ -20,6 +20,12 @@ export default function ResetPasswordPage() {
     async function validateRecoverySession() {
       try {
         const { data } = await supabase.auth.getSession()
+        console.log('[AuthDebug] reset-password:session-check', {
+          href: window.location.href,
+          origin: window.location.origin,
+          hasSession: Boolean(data.session),
+          userId: data.session?.user?.id || null,
+        })
         if (!isActive) return
         setStatus(data.session ? 'ready' : 'invalid')
       } catch (err) {
