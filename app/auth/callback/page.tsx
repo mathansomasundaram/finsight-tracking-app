@@ -18,13 +18,6 @@ export default function AuthCallbackPage() {
       const code = params.get('code')
       const errorDescription = params.get('error_description')
 
-      console.log('[AuthDebug] callback:start', {
-        href: window.location.href,
-        origin: window.location.origin,
-        hasCode: Boolean(code),
-        errorDescription,
-      })
-
       if (errorDescription) {
         if (!isActive) return
         setError(errorDescription)
@@ -39,11 +32,6 @@ export default function AuthCallbackPage() {
         }
 
         const { data: sessionData } = await supabase.auth.getSession()
-        console.log('[AuthDebug] callback:session', {
-          hasSession: Boolean(sessionData.session),
-          userId: sessionData.session?.user?.id || null,
-          userEmail: sessionData.session?.user?.email || null,
-        })
 
         if (!sessionData.session?.user) {
           throw new Error('Failed to establish authenticated session')

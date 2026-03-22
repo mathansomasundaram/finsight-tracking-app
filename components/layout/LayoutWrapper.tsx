@@ -26,9 +26,17 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   if (isLoading || !user) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center px-6">
-        <div className="text-center">
+        <div className="text-center w-full max-w-sm">
           <div className="font-display text-3xl text-text mb-3">
             Fin<span className="text-accent">sight</span>
+          </div>
+          <div className="flex justify-center gap-2 mb-4">
+            <span className="w-2.5 h-2.5 rounded-full bg-accent animate-bounce [animation-delay:-0.2s]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-accent/80 animate-bounce [animation-delay:-0.1s]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-accent/60 animate-bounce" />
+          </div>
+          <div className="h-2 rounded-full bg-bg2 border border-border overflow-hidden mb-4">
+            <div className="h-full w-full bg-gradient-to-r from-transparent via-accent/80 to-transparent animate-pulse" />
           </div>
           <p className="text-muted">
             {isLoading ? 'Restoring your session...' : 'Redirecting to login...'}

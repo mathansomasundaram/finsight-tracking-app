@@ -2,19 +2,14 @@ import { supabase } from '@/lib/supabase'
 import { User } from '@/types/index'
 import { handleSupabaseError } from '@/lib/supabaseErrors'
 
-function logAuthDebug(label: string, payload: Record<string, unknown>): void {
-  console.log(`[AuthDebug] ${label}`, payload)
-}
-
 function getAppOrigin(): string {
   const browserOrigin = typeof window !== 'undefined' ? window.location.origin : null
-  const fallbackOrigin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || null
+  const fallbackOrigin = configuredOrigin || browserOrigin || 'http://localhost:3000'
 
-  logAuthDebug('getAppOrigin', {
-    browserOrigin,
-    fallbackOrigin,
-    using: browserOrigin || fallbackOrigin,
-  })
+  if (configuredOrigin) {
+    return configuredOrigin
+  }
 
   if (typeof window !== 'undefined' && window.location.origin) {
     return window.location.origin
@@ -137,11 +132,6 @@ export async function signUpWithEmail(
  */
 export async function loginWithEmail(email: string, password: string): Promise<User> {
   try {
-    logAuthDebug('loginWithEmail:start', {
-      email,
-      browserOrigin: typeof window !== 'undefined' ? window.location.origin : null,
-    })
-
     const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -162,13 +152,7 @@ export async function loginWithEmail(email: string, password: string): Promise<U
 export async function signInWithGoogle(): Promise<User> {
   try {
     const redirectTo = `${getAppOrigin()}/auth/callback`
-    logAuthDebug('signInWithGoogle:start', {
-      browserOrigin: typeof window !== 'undefined' ? window.location.origin : null,
-      envAppUrl: process.env.NEXT_PUBLIC_APP_URL || null,
-      redirectTo,
-    })
-
-    const { data: authData, error: signInError } = await supabase.auth.signInWithOAuth({
+    const { error: signInError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo,
@@ -202,13 +186,7 @@ export async function signInWithGoogle(): Promise<User> {
 export async function signInWithGithub(): Promise<User> {
   try {
     const redirectTo = `${getAppOrigin()}/auth/callback`
-    logAuthDebug('signInWithGithub:start', {
-      browserOrigin: typeof window !== 'undefined' ? window.location.origin : null,
-      envAppUrl: process.env.NEXT_PUBLIC_APP_URL || null,
-      redirectTo,
-    })
-
-    const { data: authData, error: signInError } = await supabase.auth.signInWithOAuth({
+    const { error: signInError } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
         redirectTo,
@@ -349,13 +327,6 @@ export async function verifyEmail(token: string, type: string): Promise<void> {
 export async function requestPasswordReset(email: string): Promise<void> {
   try {
     const redirectTo = `${getAppOrigin()}/auth/reset-password`
-    logAuthDebug('requestPasswordReset:start', {
-      email,
-      browserOrigin: typeof window !== 'undefined' ? window.location.origin : null,
-      envAppUrl: process.env.NEXT_PUBLIC_APP_URL || null,
-      redirectTo,
-    })
-
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
     })
@@ -422,6 +393,16 @@ export async function reauthenticateCurrentUser(password: string): Promise<void>
     })
 
     if (signInError) throw signInError
+  } catch (error) {
+    throw new Error(getErrorMessage(error))
+  }
+}
+
+export async function getCurrentAuthProvider(): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (error) throw error
+    return data.user?.app_metadata?.provider || null
   } catch (error) {
     throw new Error(getErrorMessage(error))
   }
