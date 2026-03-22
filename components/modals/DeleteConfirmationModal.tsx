@@ -7,6 +7,8 @@ interface DeleteConfirmationModalProps {
   onConfirm: () => void;
   onCancel: () => void;
   isLoading?: boolean;
+  confirmLabel?: string;
+  loadingLabel?: string;
 }
 
 export function DeleteConfirmationModal({
@@ -16,12 +18,15 @@ export function DeleteConfirmationModal({
   onConfirm,
   onCancel,
   isLoading = false,
+  confirmLabel = 'Delete',
+  loadingLabel = 'Deleting...',
 }: DeleteConfirmationModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-bg2 border border-border rounded-2xl p-6 w-full max-w-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-black/15 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative bg-bg2 border border-border rounded-2xl p-6 w-full max-w-sm shadow-2xl">
         <h3 className="font-display text-xl text-text mb-2">{title}</h3>
         <p className="text-muted text-sm mb-6">{description}</p>
 
@@ -40,7 +45,7 @@ export function DeleteConfirmationModal({
             disabled={isLoading}
             className="flex-1 py-2 px-4 bg-red text-contrast rounded-lg hover:bg-red/80 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Deleting...' : 'Delete'}
+            {isLoading ? loadingLabel : confirmLabel}
           </button>
         </div>
       </div>

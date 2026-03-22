@@ -126,6 +126,22 @@ export async function deleteAsset(userId: string, assetId: string): Promise<void
   }
 }
 
+export async function deleteAllAssets(userId: string): Promise<number> {
+  try {
+    if (!userId) throw new Error('userId is required')
+
+    const { data, error } = await supabase.rpc('soft_delete_all_user_owned_records', {
+      p_table_name: 'assets',
+    })
+
+    if (error) throw error
+    return data || 0
+  } catch (error) {
+    console.error('Error deleting all assets:', error)
+    throw error
+  }
+}
+
 /**
  * Get all assets for a user
  */

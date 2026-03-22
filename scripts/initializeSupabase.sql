@@ -182,7 +182,7 @@ CREATE OR REPLACE FUNCTION delete_current_user_data()
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, auth
 AS $$
 DECLARE
   v_user_id UUID := auth.uid();
@@ -197,6 +197,9 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'User not found or not accessible';
   END IF;
+
+  DELETE FROM auth.users
+  WHERE id = v_user_id;
 END;
 $$;
 
@@ -225,6 +228,84 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'User not found or already disabled';
   END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION reactivate_current_user()
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id UUID := auth.uid();
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  UPDATE users
+  SET
+    is_disabled = FALSE,
+    disabled_at = NULL,
+    disabled_reason = NULL,
+    updated_at = NOW()
+  WHERE id = v_user_id
+    AND is_disabled = TRUE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'User not found or not disabled';
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION soft_delete_all_user_owned_records(p_table_name TEXT)
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id UUID := auth.uid();
+  v_rows_updated INTEGER := 0;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  CASE p_table_name
+    WHEN 'transactions' THEN
+      UPDATE transactions
+      SET
+        is_deleted = TRUE,
+        deleted_at = NOW(),
+        updated_at = NOW()
+      WHERE user_id = v_user_id
+        AND is_deleted = FALSE;
+      GET DIAGNOSTICS v_rows_updated = ROW_COUNT;
+    WHEN 'assets' THEN
+      UPDATE assets
+      SET
+        is_deleted = TRUE,
+        deleted_at = NOW(),
+        updated_at = NOW()
+      WHERE user_id = v_user_id
+        AND is_deleted = FALSE;
+      GET DIAGNOSTICS v_rows_updated = ROW_COUNT;
+    WHEN 'liabilities' THEN
+      UPDATE liabilities
+      SET
+        is_deleted = TRUE,
+        deleted_at = NOW(),
+        updated_at = NOW()
+      WHERE user_id = v_user_id
+        AND is_deleted = FALSE;
+      GET DIAGNOSTICS v_rows_updated = ROW_COUNT;
+    ELSE
+      RAISE EXCEPTION 'Unsupported table for bulk soft delete: %', p_table_name;
+  END CASE;
+
+  RETURN v_rows_updated;
 END;
 $$;
 

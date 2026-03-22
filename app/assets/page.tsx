@@ -5,10 +5,11 @@ import { Plus, Edit2, Trash2, Download } from 'lucide-react'
 import { Asset } from '@/types/index'
 import { useAuth } from '@/hooks/useAuth'
 import { useAssets as useAssetsHook, useAccounts as useAccountsHook } from '@/hooks/useData'
-import { addAsset, updateAsset, deleteAsset } from '@/lib/services'
+import { addAsset, updateAsset, deleteAsset, deleteAllAssets } from '@/lib/services'
 import { calculateAssetAllocation } from '@/lib/calculations'
 import { AssetModal } from '@/components/modals/AssetModal'
 import { CSVImportModal } from '@/components/modals/CSVImportModal'
+import { DeleteConfirmationModal } from '@/components/modals/DeleteConfirmationModal'
 import { exportAssetsCSV } from '@/lib/csvExport'
 import { CardSkeleton } from '@/components/ui/Skeleton'
 
@@ -115,6 +116,8 @@ export default function Assets() {
   const [editingAsset, setEditingAsset] = useState<AssetItem | undefined>()
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const [isClearAllOpen, setIsClearAllOpen] = useState(false)
   const [groupMode, setGroupMode] = useState<AssetGroupMode>('entry')
   const isLoading = isAuthLoading || isAssetsLoading
 
@@ -318,6 +321,22 @@ export default function Assets() {
     setIsImportModalOpen(true)
   }
 
+  const handleDeleteAllAssets = async () => {
+    if (!user || isBulkDeleting) return
+
+    try {
+      setIsBulkDeleting(true)
+      await deleteAllAssets(user.id)
+      setAssets([])
+      setIsClearAllOpen(false)
+    } catch (error) {
+      console.error('Error deleting all assets:', error)
+      throw error
+    } finally {
+      setIsBulkDeleting(false)
+    }
+  }
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -389,6 +408,14 @@ export default function Assets() {
           >
             Import CSV
           </button>
+          {assets.length > 0 && (
+            <button
+              onClick={() => setIsClearAllOpen(true)}
+              className="px-4 py-2.5 rounded-lg bg-red/10 border border-red/25 text-red hover:bg-red/15 transition-colors font-medium"
+            >
+              Clear All
+            </button>
+          )}
           <button
             onClick={handleCSVExport}
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-bg2 border border-border text-text hover:bg-bg3 transition-colors font-medium"
@@ -711,6 +738,17 @@ export default function Assets() {
       <CSVImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={isClearAllOpen}
+        title="Clear All Assets"
+        description="This will remove every asset from your tracked holdings. This action cannot be undone from the app."
+        onConfirm={handleDeleteAllAssets}
+        onCancel={() => setIsClearAllOpen(false)}
+        isLoading={isBulkDeleting}
+        confirmLabel="Delete All"
+        loadingLabel="Deleting All..."
       />
     </div>
   )

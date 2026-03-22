@@ -107,6 +107,22 @@ export async function deleteTransaction(userId: string, transactionId: string): 
   }
 }
 
+export async function deleteAllTransactions(userId: string): Promise<number> {
+  try {
+    if (!userId) throw new Error('userId is required')
+
+    const { data, error } = await supabase.rpc('soft_delete_all_user_owned_records', {
+      p_table_name: 'transactions',
+    })
+
+    if (error) throw error
+    return data || 0
+  } catch (error) {
+    console.error('Error deleting all transactions:', error)
+    throw error
+  }
+}
+
 /**
  * Get all transactions for a user with optional filtering
  */

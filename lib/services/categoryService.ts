@@ -27,6 +27,41 @@ export function getDefaultCategories(): Omit<Category, 'id' | 'userId' | 'create
 }
 
 /**
+ * Ensure built-in categories exist for the user.
+ */
+export async function ensureDefaultCategories(userId: string): Promise<void> {
+  if (!userId) throw new Error('userId is required')
+
+  const { data: existingCategories, error: fetchError } = await supabase
+    .from('categories')
+    .select('name')
+    .eq('user_id', userId)
+    .eq('is_deleted', false)
+
+  if (fetchError) throw fetchError
+
+  const existingNames = new Set((existingCategories || []).map((category: { name: string }) => category.name))
+  const missingDefaults = DEFAULT_CATEGORIES.filter((category) => !existingNames.has(category.name))
+
+  if (missingDefaults.length === 0) {
+    return
+  }
+
+  const { error: insertError } = await supabase
+    .from('categories')
+    .insert(
+      missingDefaults.map((category) => ({
+        user_id: userId,
+        name: category.name,
+        emoji: category.emoji,
+        is_default: true,
+      }))
+    )
+
+  if (insertError) throw insertError
+}
+
+/**
  * Add a custom category for a user
  */
 export async function addCategory(
@@ -217,7 +252,8 @@ export function subscribeToCategories(
     console.log(`[CategoryService] Setting up subscription for userId: ${userId}`)
 
     // Initial fetch
-    getCategories(userId)
+    ensureDefaultCategories(userId)
+      .then(() => getCategories(userId))
       .then((categories) => {
         console.log(`[CategoryService] Initial fetch returned ${categories.length} categories`)
         callback(categories)

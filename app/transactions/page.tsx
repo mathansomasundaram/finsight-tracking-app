@@ -6,7 +6,7 @@ import { Transaction } from '@/types/index';
 import { useAuth } from '@/hooks/useAuth';
 import { useAccounts as useAccountsHook, useTransactions as useTransactionsHook } from '@/hooks/useData';
 import { getSession, getSupabaseSession } from '@/lib/auth/session';
-import { updateTransaction, deleteTransaction, addTransaction } from '@/lib/services';
+import { updateTransaction, deleteTransaction, deleteAllTransactions, addTransaction } from '@/lib/services';
 import { TransactionModal } from '@/components/modals/TransactionModal';
 import { DeleteConfirmationModal } from '@/components/modals/DeleteConfirmationModal';
 import { CSVImportModal } from '@/components/modals/CSVImportModal';
@@ -17,6 +17,7 @@ import { ArrowUpDown } from 'lucide-react';
 const MONTH_RANGE_PAST = 18;
 const MONTH_RANGE_FUTURE = 6;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+type TransactionGroupMode = 'entry' | 'account' | 'category';
 
 export default function Transactions() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -25,6 +26,7 @@ export default function Transactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
+  const [groupMode, setGroupMode] = useState<TransactionGroupMode>('entry');
   const [currentMonthBase] = useState(() => startOfMonth(new Date()));
   const [selectedMonthDate, setSelectedMonthDate] = useState(() => startOfMonth(new Date()));
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
@@ -33,6 +35,8 @@ export default function Transactions() {
     isOpen: false,
   });
   const [isCSVImportOpen, setIsCSVImportOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isClearAllOpen, setIsClearAllOpen] = useState(false);
   const [itemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const isLoading = isAuthLoading || isTransactionsLoading;
@@ -71,6 +75,35 @@ export default function Transactions() {
   }, [filteredTransactions, currentPage, itemsPerPage]);
 
   const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+
+  const groupedTransactions = useMemo(() => {
+    if (groupMode === 'entry') return [];
+
+    const grouped = new Map<string, Transaction[]>();
+
+    filteredTransactions.forEach((txn) => {
+      const key = groupMode === 'account' ? txn.accountName : txn.category;
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+      }
+      grouped.get(key)!.push(txn);
+    });
+
+    return Array.from(grouped.entries())
+      .map(([key, items]) => ({
+        key,
+        items,
+        total: items.reduce((sum, item) => sum + (item.type === 'income' ? item.amount : -item.amount), 0),
+        income: items
+          .filter((item) => item.type === 'income')
+          .reduce((sum, item) => sum + item.amount, 0),
+        expense: items
+          .filter((item) => item.type === 'expense')
+          .reduce((sum, item) => sum + item.amount, 0),
+        emoji: groupMode === 'category' ? items[0]?.categoryEmoji || '💰' : null,
+      }))
+      .sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
+  }, [filteredTransactions, groupMode]);
 
   // Handle add/edit transaction
   const handleTransactionSubmit = async (transactionData: Partial<Transaction>) => {
@@ -157,6 +190,23 @@ export default function Transactions() {
     }
   };
 
+  const handleDeleteAllTransactions = async () => {
+    if (!user || isBulkDeleting) return;
+
+    try {
+      setIsBulkDeleting(true);
+      await deleteAllTransactions(user.id);
+      setTransactions([]);
+      setCurrentPage(1);
+      setIsClearAllOpen(false);
+    } catch (error) {
+      console.error('Error deleting all transactions:', error);
+      throw error;
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
   // Handle CSV export
   const handleCSVExport = () => {
     const accountTypeByName = new Map(
@@ -215,7 +265,7 @@ export default function Transactions() {
         category: record.category,
         categoryEmoji: record.categoryEmoji || '💰',
         accountName: record.accountName,
-        description: record.description || `${record.category} import`,
+        description: record.description || record.category,
         notes: record.notes,
       };
 
@@ -362,6 +412,14 @@ export default function Transactions() {
 
             {/* Action Buttons */}
             <div className="flex gap-2">
+              {transactions.length > 0 && (
+                <button
+                  onClick={() => setIsClearAllOpen(true)}
+                  className="px-4 py-2 bg-red/10 border border-red/25 rounded-lg text-red hover:bg-red/15 transition-colors font-medium text-sm"
+                >
+                  Clear All
+                </button>
+              )}
               <button
                 onClick={() => setIsCSVImportOpen(true)}
                 className="px-4 py-2 bg-bg3 border border-border rounded-lg text-text hover:bg-bg4 transition-colors font-medium text-sm"
@@ -436,6 +494,25 @@ export default function Transactions() {
               <p className="text-lg font-medium text-red">₹{monthStats.expense.toLocaleString('en-IN')}</p>
             </div>
           </div>
+
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-bg3/60 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-text">View</p>
+              <p className="text-xs text-muted">Switch between individual transactions or grouped summaries.</p>
+            </div>
+            <select
+              value={groupMode}
+              onChange={(e) => {
+                setGroupMode(e.target.value as TransactionGroupMode);
+                setCurrentPage(1);
+              }}
+              className="px-3 py-2 rounded-lg bg-bg2 border border-border text-text focus:outline-none focus:border-accent"
+            >
+              <option value="entry">Individual Entries</option>
+              <option value="account">Group by Account</option>
+              <option value="category">Group by Category</option>
+            </select>
+          </div>
         </div>
 
         {/* Transactions Table */}
@@ -458,112 +535,182 @@ export default function Transactions() {
           />
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 text-xs font-medium text-muted">Date</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-muted">Description</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-muted">Category</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-muted">Account</th>
-                    <th className="text-right py-3 px-4 text-xs font-medium text-muted">Amount</th>
-                    <th className="text-center py-3 px-4 text-xs font-medium text-muted">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedTransactions.map((txn) => (
-                    <tr
-                      key={txn.id}
-                      className="border-b border-border hover:bg-bg3 transition-colors group"
-                    >
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">{txn.type === 'income' ? '📥' : '📤'}</span>
-                          <span className="text-sm text-text">{format(txn.date, 'MMM d')}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <p className="text-sm text-text font-medium">{txn.description}</p>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{txn.categoryEmoji}</span>
-                          <span className="text-sm text-text">{txn.category}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-sm text-text">{txn.accountName}</span>
-                      </td>
-                      <td className="py-4 px-4 text-right">
-                        <span
-                          className={`text-sm font-medium ${
-                            txn.type === 'income' ? 'text-accent' : 'text-red'
+            {groupMode === 'entry' ? (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-3 px-4 text-xs font-medium text-muted">Date</th>
+                        <th className="text-left py-3 px-4 text-xs font-medium text-muted">Description</th>
+                        <th className="text-left py-3 px-4 text-xs font-medium text-muted">Category</th>
+                        <th className="text-left py-3 px-4 text-xs font-medium text-muted">Account</th>
+                        <th className="text-right py-3 px-4 text-xs font-medium text-muted">Amount</th>
+                        <th className="text-center py-3 px-4 text-xs font-medium text-muted">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedTransactions.map((txn) => (
+                        <tr
+                          key={txn.id}
+                          className="border-b border-border hover:bg-bg3 transition-colors group"
+                        >
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl">{txn.type === 'income' ? '📥' : '📤'}</span>
+                              <span className="text-sm text-text">{format(txn.date, 'MMM d')}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <p className="text-sm text-text font-medium">{txn.description}</p>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{txn.categoryEmoji}</span>
+                              <span className="text-sm text-text">{txn.category}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="text-sm text-text">{txn.accountName}</span>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <span
+                              className={`text-sm font-medium ${
+                                txn.type === 'income' ? 'text-accent' : 'text-red'
+                              }`}
+                            >
+                              {txn.type === 'income' ? '+' : '-'} ₹{txn.amount.toLocaleString('en-IN')}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleEdit(txn)}
+                                className="p-2 text-blue hover:bg-bg4 rounded-lg transition-colors"
+                                title="Edit"
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                onClick={() => handleDeleteClick(txn.id)}
+                                className="p-2 text-red hover:bg-bg4 rounded-lg transition-colors"
+                                title="Delete"
+                              >
+                                ❌
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-4 border-t border-border">
+                    <p className="text-xs text-muted">
+                      Showing {paginatedTransactions.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-
+                      {Math.min(currentPage * itemsPerPage, filteredTransactions.length)} of{' '}
+                      {filteredTransactions.length} transactions
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-2 bg-bg3 border border-border rounded-lg text-text hover:bg-bg4 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      >
+                        Previous
+                      </button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            currentPage === page
+                              ? 'bg-accent text-contrast'
+                              : 'bg-bg3 border border-border text-text hover:bg-bg4'
                           }`}
                         >
-                          {txn.type === 'income' ? '+' : '-'} ₹{txn.amount.toLocaleString('en-IN')}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => handleEdit(txn)}
-                            className="p-2 text-blue hover:bg-bg4 rounded-lg transition-colors"
-                            title="Edit"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(txn.id)}
-                            className="p-2 text-red hover:bg-bg4 rounded-lg transition-colors"
-                            title="Delete"
-                          >
-                            ❌
-                          </button>
+                          {page}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-2 bg-bg3 border border-border rounded-lg text-text hover:bg-bg4 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="space-y-4">
+                {groupedTransactions.map((group) => (
+                  <div key={group.key} className="rounded-2xl border border-border bg-bg3/40 overflow-hidden">
+                    <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-border">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {groupMode === 'category' ? (
+                          <span className="text-xl">{group.emoji}</span>
+                        ) : (
+                          <span className="text-xl">🏦</span>
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-medium text-text truncate">{group.key}</p>
+                          <p className="text-xs text-muted">
+                            {group.items.length} transaction{group.items.length === 1 ? '' : 's'}
+                          </p>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between pt-4 border-t border-border">
-                <p className="text-xs text-muted">
-                  Showing {paginatedTransactions.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-
-                  {Math.min(currentPage * itemsPerPage, filteredTransactions.length)} of{' '}
-                  {filteredTransactions.length} transactions
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="px-3 py-2 bg-bg3 border border-border rounded-lg text-text hover:bg-bg4 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  >
-                    Previous
-                  </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        currentPage === page
-                          ? 'bg-accent text-contrast'
-                          : 'bg-bg3 border border-border text-text hover:bg-bg4'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-2 bg-bg3 border border-border rounded-lg text-text hover:bg-bg4 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  >
-                    Next
-                  </button>
-                </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-sm font-semibold ${group.total >= 0 ? 'text-accent' : 'text-red'}`}>
+                          {group.total >= 0 ? '+' : '-'} ₹{Math.abs(group.total).toLocaleString('en-IN')}
+                        </p>
+                        <p className="text-xs text-muted">
+                          In ₹{group.income.toLocaleString('en-IN')} • Out ₹{group.expense.toLocaleString('en-IN')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="divide-y divide-border">
+                      {group.items.map((txn) => (
+                        <div key={txn.id} className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-bg3 transition-colors">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 text-sm text-text">
+                              <span>{txn.type === 'income' ? '📥' : '📤'}</span>
+                              <span>{format(txn.date, 'MMM d')}</span>
+                              {groupMode === 'account' ? (
+                                <span className="text-muted truncate">• {txn.category}</span>
+                              ) : (
+                                <span className="text-muted truncate">• {txn.accountName}</span>
+                              )}
+                            </div>
+                            <p className="text-sm text-text font-medium truncate mt-1">{txn.description}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className={`text-sm font-medium ${txn.type === 'income' ? 'text-accent' : 'text-red'}`}>
+                              {txn.type === 'income' ? '+' : '-'} ₹{txn.amount.toLocaleString('en-IN')}
+                            </span>
+                            <button
+                              onClick={() => handleEdit(txn)}
+                              className="p-2 text-blue hover:bg-bg4 rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(txn.id)}
+                              className="p-2 text-red hover:bg-bg4 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              ❌
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </>
@@ -590,6 +737,17 @@ export default function Transactions() {
         description="Are you sure you want to delete this transaction? This action cannot be undone."
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteConfirmation({ isOpen: false })}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={isClearAllOpen}
+        title="Clear All Transactions"
+        description="This will remove every transaction in your account from the Transactions page. This action cannot be undone from the app."
+        onConfirm={handleDeleteAllTransactions}
+        onCancel={() => setIsClearAllOpen(false)}
+        isLoading={isBulkDeleting}
+        confirmLabel="Delete All"
+        loadingLabel="Deleting All..."
       />
 
       {/* CSV Import Modal */}

@@ -37,6 +37,17 @@ export default function AuthCallbackPage() {
           throw new Error('Failed to establish authenticated session')
         }
 
+        const { data: profile } = await supabase
+          .from('users')
+          .select('is_disabled')
+          .eq('id', sessionData.session.user.id)
+          .maybeSingle()
+
+        if (profile?.is_disabled) {
+          router.replace('/auth/login?disabled=1')
+          return
+        }
+
         if (!isActive) return
         setMessage('Sign in successful. Redirecting...')
         router.replace('/')

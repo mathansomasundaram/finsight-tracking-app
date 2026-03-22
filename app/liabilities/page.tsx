@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react'
 import { Edit2, Trash2, Download, Plus } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useLiabilities as useLiabilitiesHook } from '@/hooks/useData'
-import { addLiability, updateLiability, deleteLiability } from '@/lib/services'
+import { addLiability, updateLiability, deleteLiability, deleteAllLiabilities } from '@/lib/services'
 import { calculateTotalLiabilities } from '@/lib/calculations'
 import { LiabilityModal } from '@/components/modals/LiabilityModal'
 import { CSVImportModal } from '@/components/modals/CSVImportModal'
+import { DeleteConfirmationModal } from '@/components/modals/DeleteConfirmationModal'
 import { Liability } from '@/types/index'
 import { exportLiabilitiesCSV } from '@/lib/csvExport'
 import { TableRowSkeleton } from '@/components/ui/Skeleton'
@@ -21,6 +22,8 @@ export default function Liabilities() {
   const [selectedLiability, setSelectedLiability] = useState<Liability | undefined>()
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const [isClearAllOpen, setIsClearAllOpen] = useState(false)
   const isLoading = isAuthLoading || isLiabilitiesLoading
 
   // Keep an editable local copy while realtime updates remain the source of truth.
@@ -137,6 +140,22 @@ export default function Liabilities() {
     setIsImportModalOpen(true)
   }
 
+  const handleDeleteAllLiabilities = async () => {
+    if (!user || isBulkDeleting) return
+
+    try {
+      setIsBulkDeleting(true)
+      await deleteAllLiabilities(user.id)
+      setLiabilities([])
+      setIsClearAllOpen(false)
+    } catch (error) {
+      console.error('Error deleting all liabilities:', error)
+      throw error
+    } finally {
+      setIsBulkDeleting(false)
+    }
+  }
+
   const outstandingTotal = liabilities.reduce((sum, l) => sum + l.outstandingAmount, 0)
 
   // Show loading skeleton
@@ -180,6 +199,14 @@ export default function Liabilities() {
           >
             Import CSV
           </button>
+          {liabilities.length > 0 && (
+            <button
+              onClick={() => setIsClearAllOpen(true)}
+              className="px-4 py-2 rounded-lg bg-red/10 border border-red/25 text-red hover:bg-red/15 transition-colors font-medium"
+            >
+              Clear All
+            </button>
+          )}
           <button
             onClick={handleAddLiability}
             className="flex items-center gap-2 px-4 py-2 bg-accent text-contrast rounded-lg hover:bg-accent2 transition-colors font-medium"
@@ -379,6 +406,17 @@ export default function Liabilities() {
       <CSVImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={isClearAllOpen}
+        title="Clear All Liabilities"
+        description="This will remove every tracked liability from the page. This action cannot be undone from the app."
+        onConfirm={handleDeleteAllLiabilities}
+        onCancel={() => setIsClearAllOpen(false)}
+        isLoading={isBulkDeleting}
+        confirmLabel="Delete All"
+        loadingLabel="Deleting All..."
       />
     </div>
   )

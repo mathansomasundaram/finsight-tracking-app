@@ -117,6 +117,22 @@ export async function deleteLiability(userId: string, liabilityId: string): Prom
   }
 }
 
+export async function deleteAllLiabilities(userId: string): Promise<number> {
+  try {
+    if (!userId) throw new Error('userId is required')
+
+    const { data, error } = await supabase.rpc('soft_delete_all_user_owned_records', {
+      p_table_name: 'liabilities',
+    })
+
+    if (error) throw error
+    return data || 0
+  } catch (error) {
+    console.error('Error deleting all liabilities:', error)
+    throw error
+  }
+}
+
 /**
  * Get all liabilities for a user
  */

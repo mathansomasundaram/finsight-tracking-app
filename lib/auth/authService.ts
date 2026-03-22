@@ -2,6 +2,16 @@ import { supabase } from '@/lib/supabase'
 import { User } from '@/types/index'
 import { handleSupabaseError } from '@/lib/supabaseErrors'
 
+export class DisabledAccountError extends Error {
+  reason?: string
+
+  constructor(reason?: string) {
+    super('This account is disabled.')
+    this.name = 'DisabledAccountError'
+    this.reason = reason
+  }
+}
+
 function getAppOrigin(): string {
   const browserOrigin = typeof window !== 'undefined' ? window.location.origin : null
   const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || null
@@ -42,6 +52,10 @@ function mapSupabaseUserToUser(supabaseUser: any, profile?: any): User {
  * Handles Supabase auth errors and returns user-friendly messages
  */
 function getErrorMessage(error: unknown): string {
+  if (error instanceof DisabledAccountError) {
+    return error.message
+  }
+
   const sbError = handleSupabaseError(error)
   return sbError.message
 }
@@ -67,8 +81,7 @@ async function ensureUserProfile(supabaseUser: any): Promise<User> {
 
   if (existingProfile) {
     if (existingProfile.is_disabled) {
-      await supabase.auth.signOut()
-      throw new Error('This account has been disabled. Please contact support if you need it reactivated.')
+      throw new DisabledAccountError(existingProfile.disabled_reason || undefined)
     }
 
     return mapSupabaseUserToUser(supabaseUser, existingProfile)
@@ -123,6 +136,9 @@ export async function signUpWithEmail(
 
     return await ensureUserProfile(authData.user)
   } catch (error) {
+    if (error instanceof DisabledAccountError) {
+      throw error
+    }
     throw new Error(getErrorMessage(error))
   }
 }
@@ -142,6 +158,9 @@ export async function loginWithEmail(email: string, password: string): Promise<U
 
     return await ensureUserProfile(authData.user)
   } catch (error) {
+    if (error instanceof DisabledAccountError) {
+      throw error
+    }
     throw new Error(getErrorMessage(error))
   }
 }
@@ -176,6 +195,9 @@ export async function signInWithGoogle(): Promise<User> {
       avatarInitials: '',
     }
   } catch (error) {
+    if (error instanceof DisabledAccountError) {
+      throw error
+    }
     throw new Error(getErrorMessage(error))
   }
 }
@@ -205,6 +227,9 @@ export async function signInWithGithub(): Promise<User> {
       avatarInitials: '',
     }
   } catch (error) {
+    if (error instanceof DisabledAccountError) {
+      throw error
+    }
     throw new Error(getErrorMessage(error))
   }
 }
@@ -231,6 +256,10 @@ export async function getCurrentUser(): Promise<User | null> {
 
     return await ensureUserProfile(sessionData.session.user)
   } catch (error) {
+    if (error instanceof DisabledAccountError) {
+      return null
+    }
+
     console.error('Error fetching current user:', error)
     return null
   }
@@ -246,7 +275,9 @@ export function onAuthStateChange(callback: (user: User | null) => void): () => 
         .then(() => ensureUserProfile(session.user))
         .then((resolvedUser) => callback(resolvedUser))
         .catch((error) => {
-          console.error('Error in onAuthStateChange:', error)
+          if (!(error instanceof DisabledAccountError)) {
+            console.error('Error in onAuthStateChange:', error)
+          }
           callback(null)
         })
     } else {
@@ -403,6 +434,35 @@ export async function getCurrentAuthProvider(): Promise<string | null> {
     const { data, error } = await supabase.auth.getUser()
     if (error) throw error
     return data.user?.app_metadata?.provider || null
+  } catch (error) {
+    throw new Error(getErrorMessage(error))
+  }
+}
+
+export async function reactivateCurrentUser(): Promise<void> {
+  try {
+    const { error } = await supabase.rpc('reactivate_current_user')
+    if (error) throw error
+  } catch (error) {
+    throw new Error(getErrorMessage(error))
+  }
+}
+
+export async function reactivateDisabledAccountWithPassword(
+  email: string,
+  password: string
+): Promise<void> {
+  try {
+    const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (signInError) throw signInError
+    if (!authData.user) throw new Error('Failed to sign in')
+
+    const { error: reactivateError } = await supabase.rpc('reactivate_current_user')
+    if (reactivateError) throw reactivateError
   } catch (error) {
     throw new Error(getErrorMessage(error))
   }
