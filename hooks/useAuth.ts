@@ -12,7 +12,7 @@ import {
   updateUserProfile,
   getCurrentUser,
 } from '@/lib/auth/authService'
-import { setSession, clearSession, getSession } from '@/lib/auth/session'
+import { setSession, clearSession } from '@/lib/auth/session'
 
 interface UseAuthReturn {
   user: User | null
@@ -38,12 +38,6 @@ export function useAuth(): UseAuthReturn {
   // Initialize auth state on mount
   useEffect(() => {
     let isMounted = true
-
-    // Try to restore session from localStorage first
-    const cachedUser = getSession()
-    if (cachedUser) {
-      setUser(cachedUser)
-    }
 
     const hydrateUser = async () => {
       try {

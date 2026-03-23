@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Edit2, Trash2, Download } from 'lucide-react'
+import { Plus, Edit2, Trash2, Download, ChevronDown, ChevronRight } from 'lucide-react'
 import { Asset } from '@/types/index'
 import { useAuth } from '@/hooks/useAuth'
 import { useAssets as useAssetsHook, useAccounts as useAccountsHook } from '@/hooks/useData'
@@ -103,6 +103,7 @@ const PROGRESS_BAR_COLORS = [
 interface AssetItem extends Asset {
   displayUnits?: number | string
   sourceCount?: number
+  childAssets?: AssetItem[]
 }
 
 type AssetGroupMode = 'entry' | 'name' | 'type' | 'scheme' | 'year'
@@ -119,6 +120,8 @@ export default function Assets() {
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
   const [isClearAllOpen, setIsClearAllOpen] = useState(false)
   const [groupMode, setGroupMode] = useState<AssetGroupMode>('entry')
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
+  const [expandedHoldings, setExpandedHoldings] = useState<Record<string, boolean>>({})
   const isLoading = isAuthLoading || isAssetsLoading
 
   // Keep an editable local copy while realtime updates remain the source of truth.
@@ -161,6 +164,7 @@ export default function Assets() {
           existing.currentValue += asset.currentValue
           existing.units = (existing.units || 0) + (asset.units || 0)
           existing.sourceCount = (existing.sourceCount || 1) + 1
+          existing.childAssets = [...(existing.childAssets || []), asset]
           if (existing.exchange !== asset.exchange) existing.exchange = undefined
           if (existing.subType !== asset.subType) existing.subType = undefined
         } else {
@@ -168,6 +172,7 @@ export default function Assets() {
             ...asset,
             units: asset.units || 0,
             sourceCount: 1,
+            childAssets: [asset],
           })
         }
       })
@@ -216,6 +221,7 @@ export default function Assets() {
         existing.currentValue += asset.currentValue
         existing.units = (existing.units || 0) + (asset.units || 0)
         existing.sourceCount = (existing.sourceCount || 1) + 1
+        existing.childAssets = [...(existing.childAssets || []), asset]
         existing.exchange = undefined
         existing.subType = undefined
       } else {
@@ -225,6 +231,7 @@ export default function Assets() {
             name: ASSET_TYPE_CONFIG[asset.type]?.label || asset.type,
             units: asset.units || 0,
             sourceCount: 1,
+            childAssets: [asset],
             exchange: undefined,
             subType: undefined,
           },
@@ -347,6 +354,20 @@ export default function Assets() {
   }
 
   const isEmpty = assets.length === 0
+
+  const toggleSection = (sectionKey: string) => {
+    setCollapsedSections((prev) => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey],
+    }))
+  }
+
+  const toggleHolding = (holdingKey: string) => {
+    setExpandedHoldings((prev) => ({
+      ...prev,
+      [holdingKey]: !prev[holdingKey],
+    }))
+  }
 
   // Show loading skeleton
   if (isLoading) {
@@ -477,6 +498,8 @@ export default function Assets() {
             </div>
 
             {Array.from(groupedAssets.entries()).map(([type, typeAssets]) => {
+              const sectionKey = `${groupMode}:${type}`
+              const isSectionCollapsed = collapsedSections[sectionKey] ?? false
               const config = ASSET_TYPE_CONFIG[type]
               const sectionLabel =
                 groupMode === 'year'
@@ -505,128 +528,214 @@ export default function Assets() {
                   className="bg-bg2 border border-border rounded-3xl overflow-hidden"
                 >
                   {/* Section Header */}
-                  <div className={`${sectionBg} px-6 py-4 border-b border-border`}>
+                  <button
+                    type="button"
+                    onClick={() => toggleSection(sectionKey)}
+                    className={`${sectionBg} w-full px-6 py-4 border-b border-border flex items-center justify-between text-left cursor-pointer hover:opacity-95 transition-opacity`}
+                  >
                     <h3 className={`font-display text-lg ${sectionColor} flex items-center gap-2`}>
                       <span className="text-2xl">{sectionIcon}</span>
                       {sectionLabel}
                     </h3>
-                  </div>
+                    {isSectionCollapsed ? (
+                      <ChevronRight className="w-5 h-5 text-muted shrink-0" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-muted shrink-0" />
+                    )}
+                  </button>
 
                   {/* Assets List */}
-                  <div className="divide-y divide-border">
-                    {typeAssets.map((asset) => (
-                      <div
-                        key={asset.id}
-                        className="px-6 py-4 hover:bg-bg3 transition-colors group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h4 className="font-medium text-text">
-                                {asset.name}
-                              </h4>
-                              {groupMode !== 'entry' && (asset.sourceCount || 1) > 1 && (
-                                <span className="text-xs bg-accent/10 px-2 py-1 rounded text-accent">
-                                  {asset.sourceCount} entries
-                                </span>
-                              )}
-                              {asset.units !== undefined && (
-                                <span className="text-xs bg-bg3 px-2 py-1 rounded text-muted">
-                                  {asset.units} {asset.type === 'gold' ? 'g' : 'units'}
-                                </span>
-                              )}
-                              {asset.exchange && (
-                                <span className="text-xs bg-bg3 px-2 py-1 rounded text-muted">
-                                  {asset.exchange}
-                                </span>
-                              )}
-                              {asset.subType && (
-                                <span className="text-xs bg-bg3 px-2 py-1 rounded text-muted capitalize">
-                                  {asset.subType}
-                                </span>
-                              )}
-                              {asset.investmentDate && (
-                                <span className="text-xs bg-bg3 px-2 py-1 rounded text-muted">
-                                  {asset.investmentDate.getFullYear()}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-sm text-muted">
-                              {groupMode === 'entry'
-                                ? asset.notes || 'No notes'
-                                : groupMode === 'name'
-                                  ? `Combined holding for ${asset.name}`
-                                  : groupMode === 'scheme'
-                                    ? `Total value across entries tagged as ${type}`
-                                    : groupMode === 'year'
-                                      ? `Total value for investments recorded in ${type}`
-                                      : `Total value across all ${(config?.label || type).toLowerCase()} holdings`}
-                            </div>
-                          </div>
+                  {!isSectionCollapsed && (
+                    <div className="divide-y divide-border">
+                      {typeAssets.map((asset) => {
+                        const isHoldingExpandable =
+                          groupMode !== 'entry' && (asset.childAssets?.length || 0) > 0
+                        const isHoldingExpanded = expandedHoldings[asset.id] ?? false
 
-                          <div className="text-right mr-16">
-                            <div className="text-lg font-semibold text-text">
-                              {formatCurrency(asset.currentValue)}
+                        return (
+                          <div key={asset.id}>
+                            <div className="px-6 py-4 hover:bg-bg3 transition-colors group">
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex-1">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      isHoldingExpandable ? toggleHolding(asset.id) : undefined
+                                    }
+                                    className={`flex items-center gap-3 mb-2 text-left ${
+                                      isHoldingExpandable ? 'cursor-pointer' : 'cursor-default'
+                                    }`}
+                                  >
+                                    {isHoldingExpandable &&
+                                      (isHoldingExpanded ? (
+                                        <ChevronDown className="w-4 h-4 text-muted shrink-0" />
+                                      ) : (
+                                        <ChevronRight className="w-4 h-4 text-muted shrink-0" />
+                                      ))}
+                                    <h4 className="font-medium text-text">
+                                      {asset.name}
+                                    </h4>
+                                    {groupMode !== 'entry' && (asset.sourceCount || 1) > 1 && (
+                                      <span className="text-xs bg-accent/10 px-2 py-1 rounded text-accent">
+                                        {asset.sourceCount} entries
+                                      </span>
+                                    )}
+                                    {asset.units !== undefined && asset.units > 0 && (
+                                      <span className="text-xs bg-bg3 px-2 py-1 rounded text-muted">
+                                        {asset.units} {asset.type === 'gold' ? 'g' : 'units'}
+                                      </span>
+                                    )}
+                                    {asset.exchange && (
+                                      <span className="text-xs bg-bg3 px-2 py-1 rounded text-muted">
+                                        {asset.exchange}
+                                      </span>
+                                    )}
+                                    {asset.subType && (
+                                      <span className="text-xs bg-bg3 px-2 py-1 rounded text-muted capitalize">
+                                        {asset.subType}
+                                      </span>
+                                    )}
+                                    {asset.investmentDate && (
+                                      <span className="text-xs bg-bg3 px-2 py-1 rounded text-muted">
+                                        {asset.investmentDate.getFullYear()}
+                                      </span>
+                                    )}
+                                  </button>
+                                  <div className="text-sm text-muted">
+                                    {groupMode === 'entry'
+                                      ? asset.notes || 'No notes'
+                                      : groupMode === 'name'
+                                        ? `Combined holding for ${asset.name}`
+                                        : groupMode === 'scheme'
+                                          ? `Total value across entries tagged as ${type}`
+                                          : groupMode === 'year'
+                                            ? `Total value for investments recorded in ${type}`
+                                            : `Total value across all ${(config?.label || type).toLowerCase()} holdings`}
+                                  </div>
+                                </div>
+
+                                <div className="text-right mr-16">
+                                  <div className="text-lg font-semibold text-text">
+                                    {formatCurrency(asset.currentValue)}
+                                  </div>
+                                  {asset.units && asset.units > 0 && (
+                                    <div className="text-sm text-muted">
+                                      ₹
+                                      {formatCurrency(
+                                        asset.currentValue / asset.units
+                                      ).replace('₹', '')}
+                                      /unit
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {groupMode === 'entry' ? (
+                                    <>
+                                      <button
+                                        onClick={() => handleOpenModal(asset)}
+                                        className="p-2 hover:bg-bg3 rounded-lg text-accent transition-colors"
+                                      >
+                                        <Edit2 className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => setDeleteConfirm(asset.id)}
+                                        className="p-2 hover:bg-bg3 rounded-lg text-red transition-colors"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </>
+                                  ) : null}
+                                </div>
+                              </div>
+
+                              {groupMode === 'entry' && deleteConfirm === asset.id && (
+                                <div className="mt-4 p-3 bg-red/10 border border-red rounded-lg flex items-center justify-between">
+                                  <span className="text-red text-sm">
+                                    Are you sure you want to delete this asset?
+                                  </span>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => setDeleteConfirm(null)}
+                                      className="px-3 py-1 text-sm rounded-lg bg-bg3 hover:bg-bg4 text-text transition-colors"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteAsset(asset.id)}
+                                      className="px-3 py-1 text-sm rounded-lg bg-red text-white hover:bg-red/80 transition-colors"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            {asset.units && asset.units > 0 && (
-                              <div className="text-sm text-muted">
-                                ₹
-                                {formatCurrency(
-                                  asset.currentValue / asset.units
-                                ).replace('₹', '')}
-                                /unit
+
+                            {isHoldingExpandable && isHoldingExpanded && (
+                              <div className="px-6 pb-4">
+                                <div className="rounded-2xl border border-border bg-bg3/60 overflow-hidden">
+                                  <div className="divide-y divide-border">
+                                    {asset.childAssets!.map((child) => (
+                                      <div
+                                        key={child.id}
+                                        className="px-4 py-3 flex items-center justify-between gap-4"
+                                      >
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-sm font-medium text-text">
+                                              {child.name}
+                                            </span>
+                                            {child.units !== undefined && child.units > 0 && (
+                                              <span className="text-xs bg-bg2 px-2 py-1 rounded text-muted">
+                                                {child.units} {child.type === 'gold' ? 'g' : 'units'}
+                                              </span>
+                                            )}
+                                            {child.exchange && (
+                                              <span className="text-xs bg-bg2 px-2 py-1 rounded text-muted">
+                                                {child.exchange}
+                                              </span>
+                                            )}
+                                            {child.subType && (
+                                              <span className="text-xs bg-bg2 px-2 py-1 rounded text-muted capitalize">
+                                                {child.subType}
+                                              </span>
+                                            )}
+                                            {child.investmentDate && (
+                                              <span className="text-xs bg-bg2 px-2 py-1 rounded text-muted">
+                                                {child.investmentDate.toLocaleDateString('en-IN')}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div className="text-xs text-muted mt-1">
+                                            {child.notes || 'Individual purchase lot'}
+                                          </div>
+                                        </div>
+                                        <div className="text-right">
+                                          <div className="text-sm font-medium text-text">
+                                            {formatCurrency(child.currentValue)}
+                                          </div>
+                                          {child.units && child.units > 0 && (
+                                            <div className="text-xs text-muted">
+                                              ₹
+                                              {formatCurrency(
+                                                child.currentValue / child.units
+                                              ).replace('₹', '')}
+                                              /unit
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
                               </div>
                             )}
                           </div>
-
-                          {/* Action Buttons */}
-                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {groupMode === 'entry' ? (
-                              <>
-                                <button
-                                  onClick={() => handleOpenModal(asset)}
-                                  className="p-2 hover:bg-bg3 rounded-lg text-accent transition-colors"
-                                >
-                                  <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => setDeleteConfirm(asset.id)}
-                                  className="p-2 hover:bg-bg3 rounded-lg text-red transition-colors"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </>
-                            ) : null}
-                          </div>
-                        </div>
-
-                        {/* Delete Confirmation */}
-                        {groupMode === 'entry' && deleteConfirm === asset.id && (
-                          <div className="mt-4 p-3 bg-red/10 border border-red rounded-lg flex items-center justify-between">
-                            <span className="text-red text-sm">
-                              Are you sure you want to delete this asset?
-                            </span>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => setDeleteConfirm(null)}
-                                className="px-3 py-1 text-sm rounded-lg bg-bg3 hover:bg-bg4 text-text transition-colors"
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleDeleteAsset(asset.id)
-                                }
-                                className="px-3 py-1 text-sm rounded-lg bg-red text-white hover:bg-red/80 transition-colors"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )
             })}
